@@ -10,7 +10,8 @@ import { FakeAntivirus } from "./FakeAntivirus";
 import { FakeSystemUpdate } from "./FakeSystemUpdate";
 import { FakeDownload } from "./FakeDownload";
 import { EmojiExplosion } from "./EmojiExplosion";
-import { FakeCaptcha } from "./FakeCaptcha";
+import { FakeDarknetMarket } from "./FakeDarknetMarket";
+import { FakeIPLocator } from "./FakeIPLocator";
 
 export function PopupManager() {
   const [activeEvents, setActiveEvents] = useState<TrollEvent[]>([]);
@@ -45,8 +46,10 @@ export function PopupManager() {
               return <FakeDownload key={event.id} onClose={() => closeEvent(event.id)} />;
             case "POPUP_EMOJI":
               return <EmojiExplosion key={event.id} onClose={() => closeEvent(event.id)} />;
-            case "POPUP_CAPTCHA":
-              return <FakeCaptcha key={event.id} onClose={() => closeEvent(event.id)} />;
+            case "POPUP_DARKNET":
+              return <FakeDarknetMarket key={event.id} onClose={() => closeEvent(event.id)} />;
+            case "POPUP_IPLOCATOR":
+              return <FakeIPLocator key={event.id} onClose={() => closeEvent(event.id)} />;
             default:
               return null;
           }

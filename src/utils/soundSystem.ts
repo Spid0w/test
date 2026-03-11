@@ -112,6 +112,50 @@ class SoundSystem {
     osc.stop(this.context.currentTime + 0.4);
   }
 
+  // Creepy backwards whisper simulation
+  playWhisper() {
+    if (!this.context || !this.isEnabled) return;
+    this.resume();
+    
+    // Create a 1-second buffer of noise
+    const bufferSize = this.context.sampleRate * 1.5;
+    const buffer = this.context.createBuffer(1, bufferSize, this.context.sampleRate);
+    const data = buffer.getChannelData(0);
+    
+    // Fill with modulated noise to simulate speech
+    for (let i = 0; i < bufferSize; i++) {
+        // base noise
+        const n = Math.random() * 2 - 1;
+        // amplitude modulate it with a slow sine wave to make it sound like syllables
+        const mod = Math.sin(i / this.context.sampleRate * 20) * 0.5 + 0.5;
+        data[i] = n * mod * 0.5;
+    }
+    
+    const source = this.context.createBufferSource();
+    source.buffer = buffer;
+    
+    // Play it backwards for creepiness
+    source.playbackRate.value = -0.8;
+    
+    // Filter to make it sound muffled and human-like voice range
+    const filter = this.context.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.value = 800;
+    filter.Q.value = 1.2;
+    
+    // Very quiet
+    const gain = this.context.createGain();
+    gain.gain.setValueAtTime(0, this.context.currentTime);
+    gain.gain.linearRampToValueAtTime(0.015, this.context.currentTime + 0.5); // extremely quiet
+    gain.gain.linearRampToValueAtTime(0, this.context.currentTime + 1.5);
+    
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.context.destination);
+    
+    source.start(0, buffer.duration);
+  }
+
   private resume() {
     if (this.context?.state === "suspended") {
       this.context.resume();

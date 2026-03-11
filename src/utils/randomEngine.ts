@@ -8,7 +8,8 @@ export type EventType =
   | "POPUP_UPDATE" 
   | "POPUP_DOWNLOAD" 
   | "POPUP_EMOJI"
-  | "POPUP_CAPTCHA"
+  | "POPUP_DARKNET"
+  | "POPUP_IPLOCATOR"
   | "FLASH_IMAGE" 
   | "GLITCH_SCREEN" 
   | "JUMPSCARE";
@@ -40,7 +41,8 @@ class RandomEngine {
     
     // rare
     POPUP_UPDATE: 5,
-    POPUP_CAPTCHA: 4,
+    POPUP_DARKNET: 4,
+    POPUP_IPLOCATOR: 3,
     
     // very rare
     JUMPSCARE: 1,
