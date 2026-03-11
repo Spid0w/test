@@ -79,7 +79,7 @@ export default function Home() {
               
               {/* Harmless looking link that is actually strange */}
               <div className="mt-8 md:mt-0 opacity-20 hover:opacity-100 transition-opacity duration-1000">
-                  <StrangeLink destination="/deep-login">
+                  <StrangeLink href="/deep-login">
                      [ user portal ]
                   </StrangeLink>
               </div>
