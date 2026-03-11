@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { randomEngine } from "./randomEngine";
+import { randomEngine } from "@/utils/randomEngine";
 
 const TITLES = [
   "unpocoloco",

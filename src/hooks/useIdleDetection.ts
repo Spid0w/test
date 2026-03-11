@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { randomEngine } from "./randomEngine";
+import { randomEngine } from "@/utils/randomEngine";
 
 export function useIdleDetection() {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
