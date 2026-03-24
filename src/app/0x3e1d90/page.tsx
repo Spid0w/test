@@ -18,7 +18,7 @@ const LISTINGS = [
   { id: "0xB1", name: "VPN_RETRO://2007.cache", category: "DONNÉES", price: "1.2 ₿TC", seller: "retro_pipe", rating: 4.7, reviews: 31, desc: "Naviguez sur un snapshot complet d'Internet tel qu'il était en 2007. Certaines pages... n'ont jamais existé.", status: "EN STOCK", tag: "", locked: false },
   { id: "0xB2", name: "███████ ██ ████-████ (██████)", category: "INFORMATION", price: "15.0 ₿TC", seller: "echo_mail", rating: 5.0, reviews: 1, desc: "Une lettre manuscrite que vous n'avez pas encore écrite. L'écriture est la vôtre. Le contenu est... personnel.", status: "SUR COMMANDE", tag: "EXCLUSIF", locked: true },
   { id: "0xB3", name: "Miroir Qui Retarde", category: "OBJET", price: "8.0 ₿TC", seller: "glass_anomaly", rating: 3.5, reviews: 8, desc: "Votre reflet a 3 secondes de retard. Parfois il sourit quand vous ne souriez pas.", status: "EN STOCK", tag: "ANOMALIE", locked: false },
-  { id: "0xB4", name: "SVC_MEM_WIPE.onion", category: "SERVICE", price: "20.0 ₿TC", seller: "mem_wipe", rating: 4.2, reviews: 0, desc: "Choisissez un souvenir. Nous l'effaçons. Irréversible. Les 0 avis sont intentionnels.", status: "DISPONIBLE", tag: "PREMIUM", locked: true },
+  { id: "0xB4", name: "SVC_MEM_WIPE.onion", category: "SERVICE", price: "20.0 ₿TC", seller: "mem_wipe", rating: 4.2, reviews: 0, desc: "Choisissez un souvenir. Nous l'effaçons. Irréversible. Les 0 avis sont intentionnels.", status: "DISPONIBLE", tag: "PREMIUM", locked: false },
   { id: "0xB5", name: "IMG_NULL_ROOM.raw", category: "ART", price: "0.02 ₿TC", seller: "empty_room", rating: 1.0, reviews: 512, desc: "Photo d'une pièce vide. Chaque acheteur voit quelque chose de différent dans le coin gauche.", status: "∞ EN STOCK", tag: "", locked: false },
   { id: "0xB6", name: "☎ DEAD_SIGNAL_0x3F", category: "INFORMATION", price: "0.5 ₿TC", seller: "dead_signal", rating: 3.9, reviews: 67, desc: "Numéro qui ne devrait plus fonctionner. Quelqu'un décroche toujours à la 3ème sonnerie.", status: "EN STOCK", tag: "", locked: false },
 ];
@@ -170,13 +170,9 @@ export default function MarketPage() {
                     <span className="text-lg text-zinc-300 font-bold tracking-tight">{item.price}</span>
                     <button
                       onClick={() => handleBuy(item)}
-                      className={`text-[9px] uppercase tracking-widest px-5 py-2 border transition-all duration-300 ${
-                        item.locked
-                          ? "border-amber-950/50 text-amber-800 hover:bg-amber-950/20 hover:border-amber-700/60 hover:text-amber-600"
-                          : "border-red-950/50 text-red-900 hover:bg-red-950/20 hover:border-red-800/60 hover:text-red-600"
-                      }`}
+                      className="text-[9px] uppercase tracking-widest px-5 py-2 border border-red-950/50 text-red-900 hover:bg-red-950/20 hover:border-red-800/60 hover:text-red-600 transition-all duration-300"
                     >
-                      {glitchId === item.id ? "[ ERREUR ]" : item.locked ? "🔒 [ PROTÉGÉ ]" : "[ ACQUÉRIR ]"}
+                      {glitchId === item.id ? "[ ERREUR ]" : "[ ACQUÉRIR ]"}
                     </button>
                   </div>
                 </div>
