@@ -34,6 +34,8 @@ export default function MarketPage() {
   const [passwordModal, setPasswordModal] = useState<string | null>(null);
   const [passwordInput, setPasswordInput] = useState("");
   const [passwordError, setPasswordError] = useState(false);
+  const [cameraPrompt, setCameraPrompt] = useState(false);
+  const [cameraRefused, setCameraRefused] = useState(false);
 
   useEffect(() => {
     setVisitors(Math.floor(Math.random() * 40) + 3);
@@ -80,8 +82,14 @@ export default function MarketPage() {
             <span className="text-[8px] text-zinc-700 hidden sm:block">v3.1.7 // TOR VERIFIED</span>
           </div>
           <div className="flex items-center gap-6 text-[9px] uppercase tracking-widest">
-            <span className="text-green-900">● {visitors} en ligne</span>
-            <span className="text-zinc-700">PGP: 4A2F...8C1D</span>
+            <button 
+                onClick={() => setCameraPrompt(true)} 
+                className="border border-red-900/50 px-2 py-1 text-red-700 hover:bg-red-900/20 transition-colors focus:outline-none focus:ring-1 focus:ring-red-500"
+            >
+                [ VERIFY HUMANITY ]
+            </button>
+            <span className="text-green-900 hidden md:inline">● {visitors} en ligne</span>
+            <span className="text-zinc-700 hidden lg:inline">PGP: 4A2F...8C1D</span>
             <Link href="/" className="text-zinc-600 hover:text-red-600 transition-colors">[ SORTIR ]</Link>
           </div>
         </div>
@@ -251,6 +259,54 @@ export default function MarketPage() {
                 </button>
               </div>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Fake Camera Prompt */}
+      <AnimatePresence>
+        {cameraPrompt && (
+          <motion.div
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -20, opacity: 0 }}
+            className="fixed top-4 left-1/2 -translate-x-1/2 bg-[#1c1c1e] border border-zinc-700/50 rounded-lg shadow-2xl p-4 w-[320px] z-[9999] font-sans text-[13px] text-zinc-200"
+          >
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center shrink-0">📷</div>
+              <div>
+                <div className="font-semibold text-zinc-100">VOID_MARKET.onion</div>
+                <div className="text-zinc-400 mt-1 leading-snug">Souhaite utiliser votre appareil photo.</div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-4 font-medium">
+              <button 
+                onClick={() => { setCameraRefused(true); setCameraPrompt(false); setTimeout(() => setCameraRefused(false), 8000); }} 
+                className="px-4 py-1.5 rounded-full border border-zinc-600 hover:bg-zinc-700 transition-colors text-zinc-200"
+              >
+                Refuser
+              </button>
+              <button 
+                onClick={() => setCameraPrompt(false)} 
+                className="px-4 py-1.5 rounded-full bg-blue-600 text-white hover:bg-blue-500 transition-colors"
+              >
+                Autoriser
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Camera Refused Message */}
+      <AnimatePresence>
+        {cameraRefused && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, transition: { duration: 2 } }}
+            className="fixed top-24 left-1/2 -translate-x-1/2 z-[9999] text-red-600 bg-black/90 px-6 py-3 font-mono text-xs uppercase tracking-[0.3em] border border-red-900 pointer-events-none"
+          >
+            <span className="animate-pulse">Peu importe, je te vois déjà.</span>
           </motion.div>
         )}
       </AnimatePresence>

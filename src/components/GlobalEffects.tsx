@@ -5,12 +5,15 @@ import { soundSystem } from "@/utils/soundSystem";
 import { randomEngine } from "@/utils/randomEngine";
 import { PopupManager } from "./popups/PopupManager";
 import { SubliminalFlash } from "./SubliminalFlash";
+import { SubliminalText } from "./SubliminalText";
+import { FakeChat } from "./FakeChat";
 import { GlitchWrapper } from "./glitch/GlitchWrapper";
 import { CursorEffects } from "./CursorEffects";
 import { useViralTricks } from "@/hooks/useViralTricks";
 import { useEasterEggs } from "@/hooks/useEasterEggs";
 import { useIdleDetection } from "@/hooks/useIdleDetection";
 import { useKonamiCode } from "@/hooks/useKonamiCode";
+import { useCursedCopy } from "@/hooks/useCursedCopy";
 import { WatchingEye } from "./WatchingEye";
 import { CursorTraces } from "./CursorTraces";
 
@@ -19,6 +22,7 @@ export function GlobalEffects() {
   useEasterEggs();
   useIdleDetection();
   useKonamiCode();
+  useCursedCopy();
 
   useEffect(() => {
     // We init sound on first interaction
@@ -44,6 +48,8 @@ export function GlobalEffects() {
       <CursorEffects />
       <PopupManager />
       <SubliminalFlash />
+      <SubliminalText />
+      <FakeChat />
       <GlitchWrapper />
       <WatchingEye />
       <CursorTraces />
