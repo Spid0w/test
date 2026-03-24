@@ -34,7 +34,7 @@ export function WatchingEye() {
   const pupil = calculatePupilPos();
 
   return (
-    <div className="fixed bottom-4 right-4 z-[100] opacity-5 hover:opacity-20 transition-opacity duration-1000 pointer-events-none">
+    <div className="fixed bottom-4 right-4 z-[100] opacity-20 hover:opacity-100 transition-opacity duration-1000 pointer-events-none drop-shadow-[0_0_8px_rgba(255,0,0,0.3)]">
       <svg 
         ref={eyeRef}
         width="60" 

@@ -71,7 +71,11 @@ export default function Home() {
             className="w-full max-w-5xl z-10 flex flex-col items-center gap-16 relative"
           >
             {/* The "Normal" sounding header */}
-            <div className="w-full flex flex-col md:flex-row items-center justify-between font-mono text-sm border border-zinc-900/50 p-8 rounded bg-black/60 shadow-[0_0_50px_rgba(0,0,0,0.5)] backdrop-blur-md">
+            <div className="w-full flex flex-col md:flex-row items-center justify-between font-mono text-sm border border-zinc-900/50 p-8 rounded bg-black/60 shadow-[0_0_50px_rgba(0,0,0,0.5)] backdrop-blur-md relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-8 h-8 opacity-20 hover:opacity-100 transition-opacity">
+                 <img src="/logo.png" alt="logo" className="w-full h-full object-contain filter grayscale invert" />
+              </div>
+              
               <p className="flex items-center gap-2 text-zinc-400">
                 Welcome back to&nbsp;
                 <code className="font-bold text-zinc-200 bg-zinc-900 px-2 py-1 rounded">unpocoloco</code>
@@ -79,17 +83,17 @@ export default function Home() {
               
               {/* Harmless looking link that is actually strange */}
               <div className="mt-8 md:mt-0 opacity-20 hover:opacity-100 transition-opacity duration-1000">
-                  <StrangeLink href="/deep-login">
+                  <StrangeLink href="/0x8f9b2c">
                      [ user portal ]
                   </StrangeLink>
               </div>
             </div>
 
             {/* Creepy cryptic center element */}
-            <div className="flex flex-col items-center mt-20 opacity-10 hover:opacity-100 transition-opacity duration-300">
-               <span className="text-xs text-white uppercase tracking-[1em] mb-4">Nothing to see here</span>
-               <div className="w-[1px] h-32 bg-gradient-to-b from-white/20 to-transparent" />
-            </div>
+            <Link href="/doors" className="flex flex-col items-center mt-20 opacity-10 hover:opacity-100 transition-opacity duration-300 group cursor-none">
+               <span className="text-xs text-white uppercase tracking-[1em] mb-4 group-hover:text-red-600 transition-colors">Nothing to see here</span>
+               <div className="w-[1px] h-32 bg-gradient-to-b from-white/20 to-transparent group-hover:from-red-600 transition-all" />
+            </Link>
 
             <div className="absolute -bottom-32 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-red-900 blur-[150px] opacity-10 pointer-events-none mix-blend-screen" />
           </motion.div>
