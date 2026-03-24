@@ -9,6 +9,7 @@ import { Terminal } from "lucide-react";
 // Keyword → redirect map (keys are pre-normalised: lowercase + no whitespace)
 const KEYWORD_REDIRECTS: Record<string, string> = {
   casino: "https://snatchcasino.com",
+  zevann: "https://mega-hub-seven.vercel.app/dashboard",
   observer: "/you-found-me",
   void: "/void",
   glitch: "/glitch",
