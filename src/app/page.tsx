@@ -90,7 +90,7 @@ export default function Home() {
             </div>
 
             {/* Creepy cryptic center element */}
-            <Link href="/doors" className="flex flex-col items-center mt-20 opacity-10 hover:opacity-100 transition-opacity duration-300 group cursor-none">
+            <Link href="/0x3e1d90" className="flex flex-col items-center mt-20 opacity-10 hover:opacity-100 transition-opacity duration-300 group cursor-none">
                <span className="text-xs text-white uppercase tracking-[1em] mb-4 group-hover:text-red-600 transition-colors">Nothing to see here</span>
                <div className="w-[1px] h-32 bg-gradient-to-b from-white/20 to-transparent group-hover:from-red-600 transition-all" />
             </Link>
