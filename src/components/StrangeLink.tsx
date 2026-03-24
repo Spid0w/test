@@ -26,10 +26,9 @@ export function StrangeLink({
       return;
     }
 
-    // 10% chance to flash darknet popups before navigating
+    // 10% chance to trigger a glitch before navigating
     if (chance > 0.9) {
-      randomEngine.triggerEvent("POPUP_IPLOCATOR");
-      setTimeout(() => randomEngine.triggerEvent("POPUP_DARKNET"), 300);
+      randomEngine.triggerEvent("GLITCH_SCREEN");
     }
     
     // 5% chance to redirect to /void instead of intended

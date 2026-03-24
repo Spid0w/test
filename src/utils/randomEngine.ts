@@ -3,8 +3,6 @@
 import { soundSystem } from "./soundSystem";
 
 export type EventType = 
-  | "POPUP_DARKNET"
-  | "POPUP_IPLOCATOR"
   | "FLASH_IMAGE" 
   | "GLITCH_SCREEN" 
   | "JUMPSCARE";
@@ -24,15 +22,8 @@ class RandomEngine {
   
   // Weights (higher = more likely)
   private weights: Record<EventType, number> = {
-    // frequent
     FLASH_IMAGE: 40,
     GLITCH_SCREEN: 25,
-    
-    // medium
-    POPUP_DARKNET: 10,
-    POPUP_IPLOCATOR: 8,
-    
-    // very rare
     JUMPSCARE: 1,
   };
 
@@ -124,7 +115,7 @@ class RandomEngine {
       if (randomVal <= 0) return type;
     }
     
-    return "POPUP_DARKNET";
+    return "GLITCH_SCREEN";
   }
 }
 

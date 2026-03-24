@@ -6,14 +6,30 @@ import { GlitchText } from "@/components/glitch/GlitchText";
 import { motion, AnimatePresence } from "framer-motion";
 import { Terminal } from "lucide-react";
 
-// Keyword → redirect map
+// Keyword → redirect map (keys are pre-normalised: lowercase + no whitespace)
 const KEYWORD_REDIRECTS: Record<string, string> = {
-  observer: "/you-found-me",
   casino: "https://snatchcasino.com",
+  observer: "/you-found-me",
   void: "/void",
   glitch: "/glitch",
   unknown: "/unknown",
 };
+
+// Normalise input: lowercase + strip ALL whitespace so "c a s i n o" == "casino"
+function normalise(s: string) {
+  return s.toLowerCase().replace(/\s+/g, "");
+}
+
+// Convert decimal degrees to DMS string e.g. 48.8588° N
+function toDMS(deg: number, isLat: boolean): string {
+  const dir = isLat ? (deg >= 0 ? "N" : "S") : (deg >= 0 ? "E" : "W");
+  const abs = Math.abs(deg);
+  const d = Math.floor(abs);
+  const mFull = (abs - d) * 60;
+  const m = Math.floor(mFull);
+  const s = ((mFull - m) * 60).toFixed(2);
+  return `${d}°${m}'${s}" ${dir}`;
+}
 
 interface GeoData {
   ip: string;
@@ -23,91 +39,82 @@ interface GeoData {
   latitude: number;
   longitude: number;
   org: string;
+  timezone: string;
 }
 
 export default function DeepLoginPage() {
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [locked, setLocked] = useState(false);
-  const [geoLines, setGeoLines] = useState<string[]>([]);
+  const [geoLines, setGeoLines] = useState<{ text: string; isError?: boolean }[]>([]);
   const [showGeotrack, setShowGeotrack] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const geoScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
-  const runGeotrackSequence = async (redirectTo: string) => {
+  // Auto-scroll geotrack terminal
+  useEffect(() => {
+    if (geoScrollRef.current) {
+      geoScrollRef.current.scrollTop = geoScrollRef.current.scrollHeight;
+    }
+  }, [geoLines]);
+
+  const pushLine = (text: string, isError = false) =>
+    new Promise<void>((resolve) => {
+      setTimeout(() => {
+        setGeoLines((prev) => [...prev, { text, isError }]);
+        resolve();
+      }, 700);
+    });
+
+  const runGeotrackSequence = async (redirectTo: string | null) => {
     setShowGeotrack(true);
     setGeoLines([]);
 
     let geoData: GeoData | null = null;
-
-    // Try to fetch real IP data
     try {
       const res = await fetch("https://ipapi.co/json/");
-      if (res.ok) {
-        geoData = await res.json();
-      }
+      if (res.ok) geoData = await res.json();
     } catch {
-      // silently fail — fallback to fake data below
+      /* silently fall back */
     }
 
-    const ip = geoData?.ip ?? `${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}`;
-    const lat = geoData ? geoData.latitude.toFixed(4) : (Math.random() * 180 - 90).toFixed(4);
-    const lng = geoData ? geoData.longitude.toFixed(4) : (Math.random() * 360 - 180).toFixed(4);
+    const ip = geoData?.ip ?? `${rnd(255)}.${rnd(255)}.${rnd(255)}.${rnd(255)}`;
+    const lat = geoData?.latitude ?? parseFloat((Math.random() * 180 - 90).toFixed(6));
+    const lng = geoData?.longitude ?? parseFloat((Math.random() * 360 - 180).toFixed(6));
     const location = geoData
       ? `${geoData.city}, ${geoData.region}, ${geoData.country_name}`
       : "UNKNOWN";
     const isp = geoData?.org ?? "UNRESOLVED";
+    const tz = geoData?.timezone ?? "UNKNOWN";
 
-    const sequence = [
-      "INITIALIZING TRACE...",
-      "BYPASSING PROXY LAYERS...",
-      `TARGET IP ACQUIRED: ${ip}`,
-      "RESOLVING GEOLOCATION...",
-      `LAT: ${lat} // LNG: ${lng}`,
-      `LOCATION: ${location}`,
-      `ISP: ${isp}`,
-      "MATCHING HARDWARE FINGERPRINT...",
-      "SUCCESS.",
-      "They know you are here.",
-    ];
-
-    // Print lines one by one
-    for (let i = 0; i < sequence.length; i++) {
-      await new Promise((r) => setTimeout(r, 700));
-      setGeoLines((prev) => [...prev, sequence[i]]);
-    }
-
-    // Pause a moment then redirect
-    await new Promise((r) => setTimeout(r, 1200));
-
-    if (redirectTo.startsWith("http")) {
-      window.location.href = redirectTo;
-    } else {
-      router.push(redirectTo);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (locked) return;
-
-    const key = password.toLowerCase().trim();
-    const redirectTo = KEYWORD_REDIRECTS[key];
-
-    setLocked(true);
+    await pushLine("INITIALIZING TRACE PROTOCOL...");
+    await pushLine("BYPASSING PROXY LAYERS...");
+    await pushLine(`TARGET IP ACQUIRED: ${ip}`);
+    await pushLine("RESOLVING GEOLOCATION...");
+    await pushLine(`LAT  ${toDMS(lat, true)}`);
+    await pushLine(`LNG  ${toDMS(lng, false)}`);
+    await pushLine(`LOC  ${location}`);
+    await pushLine(`TZ   ${tz}`);
+    await pushLine(`ISP  ${isp}`);
+    await pushLine("MATCHING HARDWARE FINGERPRINT...");
 
     if (redirectTo) {
-      // Show the geotrack terminal then redirect
-      setErrorMsg("");
-      await runGeotrackSequence(redirectTo);
+      await pushLine("SUCCESS. ACCESS GRANTED.");
+      await new Promise((r) => setTimeout(r, 1000));
+      if (redirectTo.startsWith("http")) {
+        window.location.href = redirectTo;
+      } else {
+        router.push(redirectTo);
+      }
     } else {
-      setErrorMsg("INVALID KERNEL HANDSHAKE.");
-      // Show geotrack as punishment for wrong password
-      await runGeotrackSequence("/deep-login");
+      await pushLine("ERROR: PASSPHRASE NOT FOUND IN INDEX.", true);
+      await pushLine("TRACE LOGGED. IDENTITY ARCHIVED.", true);
+      await new Promise((r) => setTimeout(r, 1800));
       setShowGeotrack(false);
       setGeoLines([]);
       setLocked(false);
@@ -115,6 +122,22 @@ export default function DeepLoginPage() {
       setErrorMsg("");
       inputRef.current?.focus();
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (locked) return;
+    setLocked(true);
+    setErrorMsg("");
+
+    const key = normalise(password);
+    const redirectTo = KEYWORD_REDIRECTS[key] ?? null;
+
+    if (!redirectTo) {
+      setErrorMsg("INVALID KERNEL HANDSHAKE.");
+    }
+
+    await runGeotrackSequence(redirectTo);
   };
 
   return (
@@ -144,7 +167,7 @@ export default function DeepLoginPage() {
           <AnimatePresence>
             {showGeotrack && (
               <motion.div
-                initial={{ opacity: 0, y: -10 }}
+                initial={{ opacity: 0, y: -6 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 className="mb-6 bg-black border border-green-500/40 rounded shadow-[0_0_12px_rgba(0,255,0,0.08)]"
@@ -153,19 +176,19 @@ export default function DeepLoginPage() {
                   <Terminal size={12} />
                   <span>geotrack.exe</span>
                 </div>
-                <div className="p-4 space-y-1.5 h-[200px] overflow-auto">
+                <div ref={geoScrollRef} className="p-4 space-y-1.5 h-[220px] overflow-auto">
                   {geoLines.map((line, i) => (
                     <motion.div
                       key={i}
                       initial={{ opacity: 0, x: -8 }}
                       animate={{ opacity: 1, x: 0 }}
-                      className="text-green-400 text-xs font-mono"
+                      className={`text-xs font-mono ${line.isError ? "text-red-500" : "text-green-400"}`}
                     >
                       <span className="text-zinc-600 mr-2">{">"}</span>
-                      {line}
+                      {line.text}
                     </motion.div>
                   ))}
-                  {geoLines.length < 10 && (
+                  {geoLines.length < (errorMsg ? 12 : 11) && (
                     <motion.div
                       animate={{ opacity: [1, 0] }}
                       transition={{ repeat: Infinity, duration: 0.5 }}
@@ -195,9 +218,6 @@ export default function DeepLoginPage() {
 
             <div className="h-4 text-xs font-bold text-red-500 text-center">
               {errorMsg && <span className="animate-pulse">{errorMsg}</span>}
-              {locked && !showGeotrack && (
-                <span className="text-red-900 block mt-1">INITIATING TRACE...</span>
-              )}
             </div>
 
             <button
@@ -216,4 +236,8 @@ export default function DeepLoginPage() {
       </div>
     </main>
   );
+}
+
+function rnd(n: number) {
+  return Math.floor(Math.random() * n);
 }

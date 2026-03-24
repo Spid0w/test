@@ -16,7 +16,7 @@ const TITLES = [
 
 export function useViralTricks() {
   useEffect(() => {
-    // 1. Changing titles randomly
+    // 1. Change tab title randomly
     const titleInterval = setInterval(() => {
       if (Math.random() < 0.2) {
         document.title = TITLES[Math.floor(Math.random() * TITLES.length)];
@@ -25,30 +25,21 @@ export function useViralTricks() {
       }
     }, 5000);
 
-    // 2. Clipboard manipulation - occasionally append mystery text
+    // 2. Clipboard manipulation — append mystery text on copy
     const onCopy = (e: ClipboardEvent) => {
       if (Math.random() < 0.3) {
         const selection = window.getSelection()?.toString() || "";
-        e.clipboardData?.setData('text/plain', selection + "\n\n-- you are being watched.");
+        e.clipboardData?.setData("text/plain", selection + "\n\n-- you are being watched.");
         e.preventDefault();
-        
-        // Maybe trigger an event for copying
-        randomEngine.triggerEvent("POPUP_IPLOCATOR");
+        // Trigger a visual glitch on copy
+        randomEngine.triggerEvent("GLITCH_SCREEN");
       }
     };
-
-    // 3. Occasionally surface the darknet market overlay
-    const notificationInterval = setInterval(() => {
-      if (Math.random() < 0.05) {
-        randomEngine.triggerEvent("POPUP_DARKNET");
-      }
-    }, 30000);
 
     window.addEventListener("copy", onCopy);
 
     return () => {
       clearInterval(titleInterval);
-      clearInterval(notificationInterval);
       window.removeEventListener("copy", onCopy);
       document.title = "unpocoloco";
     };
