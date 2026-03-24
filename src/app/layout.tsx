@@ -7,6 +7,9 @@ import { Analytics } from "@vercel/analytics/next";
 export const metadata: Metadata = {
   title: "unpocoloco",
   description: "Are you sure you want to be here?",
+  icons: {
+    icon: "/logo.png",
+  },
 };
 
 export default function RootLayout({

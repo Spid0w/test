@@ -11,7 +11,6 @@ import { useViralTricks } from "@/hooks/useViralTricks";
 import { useEasterEggs } from "@/hooks/useEasterEggs";
 import { useIdleDetection } from "@/hooks/useIdleDetection";
 import { useKonamiCode } from "@/hooks/useKonamiCode";
-import { useDynamicFavicon } from "@/hooks/useDynamicFavicon";
 import { WatchingEye } from "./WatchingEye";
 import { CursorTraces } from "./CursorTraces";
 
@@ -20,7 +19,6 @@ export function GlobalEffects() {
   useEasterEggs();
   useIdleDetection();
   useKonamiCode();
-  useDynamicFavicon();
 
   useEffect(() => {
     // We init sound on first interaction
