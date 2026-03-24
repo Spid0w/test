@@ -70,9 +70,12 @@ export default function MarketPage() {
     } else if (inputClean === "zevann") {
       setPasswordModal(null);
       window.location.href = "https://mega-hub-seven.vercel.app/dashboard";
+    } else if (inputClean === "boulbix") {
+      setPasswordModal(null);
+      router.push("/0x0d1f2e");
     } else if (inputClean === "blackmarket" || inputClean === "darknet" || inputClean === "weapons") {
       setPasswordModal(null);
-      router.push("/classified-arms");
+      router.push("/0x2d7f1a");
     } else {
       setPasswordError(true);
       setTimeout(() => setPasswordError(false), 1500);
