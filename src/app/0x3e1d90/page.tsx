@@ -3,32 +3,37 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const LISTINGS = [
-  { id: "0xA1", name: "Mémoire d'Inconnu #447", category: "ORGANIQUE", price: "3.2 ₿TC", seller: "void_merchant", rating: 4.8, reviews: 12, desc: "Fragment de souvenir extrait. Contenu : un anniversaire, possiblement 1987. Non vérifié.", status: "EN STOCK", tag: "POPULAIRE" },
-  { id: "0xA2", name: "Clé USB — CONTENU INCONNU", category: "DONNÉES", price: "0.8 ₿TC", seller: "datacorpse", rating: 3.2, reviews: 87, desc: "Trouvée dans un mur lors d'une démolition. 128GB. Encryptée. Bruits détectés à l'ouverture.", status: "EN STOCK", tag: "⚠️ RISQUÉ" },
-  { id: "0xA3", name: "Ombre en Bocal (Grade A)", category: "ORGANIQUE", price: "12.0 ₿TC", seller: "nightcollector", rating: 5.0, reviews: 3, desc: "Ombre humaine capturée in situ. Conservation garantie 200 ans. Le donneur ne sait pas.", status: "DERNIÈRE UNITÉ", tag: "RARE" },
-  { id: "0xA4", name: "Coordonnées GPS — \"La Porte\"", category: "INFORMATION", price: "0.1 ₿TC", seller: "gps_dealer", rating: 1.5, reviews: 341, desc: "Lieu où 14 personnes ont disparu. Pas de corps retrouvés. Pas de retour signalé.", status: "EN STOCK", tag: "" },
-  { id: "0xA5", name: "Portrait de Vous (Demain)", category: "SERVICE", price: "7.5 ₿TC", seller: "precog_ink", rating: 4.9, reviews: 6, desc: "Portrait dessiné à la main de votre visage tel qu'il sera dans exactement 24h. Précision : troublante.", status: "SUR COMMANDE", tag: "VÉRIFIÉ" },
-  { id: "0xA6", name: "Bruit Blanc Vivant", category: "AUDIO", price: "0.3 ₿TC", seller: "freq_ghost", rating: 4.1, reviews: 29, desc: "Fichier .wav de 3h. Le bruit blanc répond si vous parlez. Ne pas écouter seul.", status: "EN STOCK", tag: "" },
-  { id: "0xA7", name: "Montre — Heure Inversée", category: "OBJET", price: "5.0 ₿TC", seller: "temporal_junk", rating: 3.8, reviews: 15, desc: "Montre mécanique. Fonctionne à l'envers. Le temps autour de l'objet semble... différent.", status: "EN STOCK", tag: "ANOMALIE" },
-  { id: "0xA8", name: "Rêve Lucide (Injection)", category: "SERVICE", price: "2.1 ₿TC", seller: "dreamweaver_x", rating: 4.5, reviews: 44, desc: "On vous injecte le rêve de quelqu'un d'autre. Durée : 1 nuit. Effets secondaires : nostalgie intense.", status: "EN STOCK", tag: "" },
-  { id: "0xA9", name: "Dent Humaine (Non Identifiée)", category: "ORGANIQUE", price: "0.05 ₿TC", seller: "bone_yard", rating: 2.0, reviews: 203, desc: "Origine inconnue. Datation carbone : impossible. La dent est tiède au toucher.", status: "EN STOCK", tag: "PROMO" },
-  { id: "0xB1", name: "Accès VPN — Internet de 2007", category: "DONNÉES", price: "1.2 ₿TC", seller: "retro_pipe", rating: 4.7, reviews: 31, desc: "Naviguez sur un snapshot complet d'Internet tel qu'il était en 2007. Certaines pages... n'ont jamais existé.", status: "EN STOCK", tag: "" },
-  { id: "0xB2", name: "Lettre de Vous-Même (Future)", category: "INFORMATION", price: "15.0 ₿TC", seller: "echo_mail", rating: 5.0, reviews: 1, desc: "Une lettre manuscrite que vous n'avez pas encore écrite. L'écriture est la vôtre. Le contenu est... personnel.", status: "SUR COMMANDE", tag: "EXCLUSIF" },
-  { id: "0xB3", name: "Miroir Qui Retarde", category: "OBJET", price: "8.0 ₿TC", seller: "glass_anomaly", rating: 3.5, reviews: 8, desc: "Votre reflet a 3 secondes de retard. Parfois il sourit quand vous ne souriez pas.", status: "EN STOCK", tag: "ANOMALIE" },
-  { id: "0xB4", name: "Service d'Oubli Sélectif", category: "SERVICE", price: "20.0 ₿TC", seller: "mem_wipe", rating: 4.2, reviews: 0, desc: "Choisissez un souvenir. Nous l'effaçons. Irréversible. Les 0 avis sont intentionnels.", status: "DISPONIBLE", tag: "PREMIUM" },
-  { id: "0xB5", name: "Photographie de Pièce Vide", category: "ART", price: "0.02 ₿TC", seller: "empty_room", rating: 1.0, reviews: 512, desc: "Photo d'une pièce vide. Chaque acheteur voit quelque chose de différent dans le coin gauche.", status: "∞ EN STOCK", tag: "" },
-  { id: "0xB6", name: "Numéro de Téléphone Mort", category: "INFORMATION", price: "0.5 ₿TC", seller: "dead_signal", rating: 3.9, reviews: 67, desc: "Numéro qui ne devrait plus fonctionner. Quelqu'un décroche toujours à la 3ème sonnerie.", status: "EN STOCK", tag: "" },
+  { id: "0xA1", name: "Mémoire d'Inconnu #447", category: "ORGANIQUE", price: "3.2 ₿TC", seller: "void_merchant", rating: 4.8, reviews: 12, desc: "Fragment de souvenir extrait. Contenu : un anniversaire, possiblement 1987. Non vérifié.", status: "EN STOCK", tag: "POPULAIRE", locked: false },
+  { id: "0xA2", name: "██ USB — ████████ ██████", category: "DONNÉES", price: "0.8 ₿TC", seller: "datacorpse", rating: 3.2, reviews: 87, desc: "Trouvée dans un mur lors d'une démolition. 128GB. Encryptée. Bruits détectés à l'ouverture.", status: "EN STOCK", tag: "⚠️ RISQUÉ", locked: false },
+  { id: "0xA3", name: "Ombre en Bocal (Grade A)", category: "ORGANIQUE", price: "12.0 ₿TC", seller: "nightcollector", rating: 5.0, reviews: 3, desc: "Ombre humaine capturée in situ. Conservation garantie 200 ans. Le donneur ne sait pas.", status: "DERNIÈRE UNITÉ", tag: "RARE", locked: false },
+  { id: "0xA4", name: "48.8566°N 2.3522°E — \"██ ████\"", category: "INFORMATION", price: "0.1 ₿TC", seller: "gps_dealer", rating: 1.5, reviews: 341, desc: "Lieu où 14 personnes ont disparu. Pas de corps retrouvés. Pas de retour signalé.", status: "EN STOCK", tag: "", locked: false },
+  { id: "0xA5", name: "SVC_PRECOG_24H.exe", category: "SERVICE", price: "7.5 ₿TC", seller: "precog_ink", rating: 4.9, reviews: 6, desc: "Portrait dessiné à la main de votre visage tel qu'il sera dans exactement 24h. Précision : troublante.", status: "SUR COMMANDE", tag: "VÉRIFIÉ", locked: false },
+  { id: "0xA6", name: "Bruit Blanc Vivant", category: "AUDIO", price: "0.3 ₿TC", seller: "freq_ghost", rating: 4.1, reviews: 29, desc: "Fichier .wav de 3h. Le bruit blanc répond si vous parlez. Ne pas écouter seul.", status: "EN STOCK", tag: "", locked: false },
+  { id: "0xA7", name: "OBJ_CHRONO_INV [lot #7]", category: "OBJET", price: "5.0 ₿TC", seller: "temporal_junk", rating: 3.8, reviews: 15, desc: "Montre mécanique. Fonctionne à l'envers. Le temps autour de l'objet semble... différent.", status: "EN STOCK", tag: "ANOMALIE", locked: false },
+  { id: "0xA8", name: "Rêve Lucide (Injection)", category: "SERVICE", price: "2.1 ₿TC", seller: "dreamweaver_x", rating: 4.5, reviews: 44, desc: "On vous injecte le rêve de quelqu'un d'autre. Durée : 1 nuit. Effets secondaires : nostalgie intense.", status: "EN STOCK", tag: "", locked: false },
+  { id: "0xA9", name: "SPÉCIMEN_ORG_003 (non-id.)", category: "ORGANIQUE", price: "0.05 ₿TC", seller: "bone_yard", rating: 2.0, reviews: 203, desc: "Origine inconnue. Datation carbone : impossible. L'objet est tiède au toucher.", status: "EN STOCK", tag: "PROMO", locked: false },
+  { id: "0xB1", name: "VPN_RETRO://2007.cache", category: "DONNÉES", price: "1.2 ₿TC", seller: "retro_pipe", rating: 4.7, reviews: 31, desc: "Naviguez sur un snapshot complet d'Internet tel qu'il était en 2007. Certaines pages... n'ont jamais existé.", status: "EN STOCK", tag: "", locked: false },
+  { id: "0xB2", name: "███████ ██ ████-████ (██████)", category: "INFORMATION", price: "15.0 ₿TC", seller: "echo_mail", rating: 5.0, reviews: 1, desc: "Une lettre manuscrite que vous n'avez pas encore écrite. L'écriture est la vôtre. Le contenu est... personnel.", status: "SUR COMMANDE", tag: "EXCLUSIF", locked: true },
+  { id: "0xB3", name: "Miroir Qui Retarde", category: "OBJET", price: "8.0 ₿TC", seller: "glass_anomaly", rating: 3.5, reviews: 8, desc: "Votre reflet a 3 secondes de retard. Parfois il sourit quand vous ne souriez pas.", status: "EN STOCK", tag: "ANOMALIE", locked: false },
+  { id: "0xB4", name: "SVC_MEM_WIPE.onion", category: "SERVICE", price: "20.0 ₿TC", seller: "mem_wipe", rating: 4.2, reviews: 0, desc: "Choisissez un souvenir. Nous l'effaçons. Irréversible. Les 0 avis sont intentionnels.", status: "DISPONIBLE", tag: "PREMIUM", locked: true },
+  { id: "0xB5", name: "IMG_NULL_ROOM.raw", category: "ART", price: "0.02 ₿TC", seller: "empty_room", rating: 1.0, reviews: 512, desc: "Photo d'une pièce vide. Chaque acheteur voit quelque chose de différent dans le coin gauche.", status: "∞ EN STOCK", tag: "", locked: false },
+  { id: "0xB6", name: "☎ DEAD_SIGNAL_0x3F", category: "INFORMATION", price: "0.5 ₿TC", seller: "dead_signal", rating: 3.9, reviews: 67, desc: "Numéro qui ne devrait plus fonctionner. Quelqu'un décroche toujours à la 3ème sonnerie.", status: "EN STOCK", tag: "", locked: false },
 ];
 
 const CATEGORIES = ["TOUT", "ORGANIQUE", "DONNÉES", "INFORMATION", "SERVICE", "OBJET", "AUDIO", "ART"];
 
 export default function MarketPage() {
+  const router = useRouter();
   const [filter, setFilter] = useState("TOUT");
   const [searchQuery, setSearchQuery] = useState("");
   const [visitors, setVisitors] = useState(0);
   const [glitchId, setGlitchId] = useState<string | null>(null);
+  const [passwordModal, setPasswordModal] = useState<string | null>(null);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [passwordError, setPasswordError] = useState(false);
 
   useEffect(() => {
     setVisitors(Math.floor(Math.random() * 40) + 3);
@@ -44,9 +49,25 @@ export default function MarketPage() {
     return matchCat && matchSearch;
   });
 
-  const handleBuy = (id: string) => {
-    setGlitchId(id);
+  const handleBuy = (item: typeof LISTINGS[0]) => {
+    if (item.locked) {
+      setPasswordModal(item.id);
+      setPasswordInput("");
+      setPasswordError(false);
+      return;
+    }
+    setGlitchId(item.id);
     setTimeout(() => setGlitchId(null), 2000);
+  };
+
+  const handlePasswordSubmit = () => {
+    if (passwordInput === "password") {
+      setPasswordModal(null);
+      router.push("/");
+    } else {
+      setPasswordError(true);
+      setTimeout(() => setPasswordError(false), 1500);
+    }
   };
 
   return (
@@ -148,10 +169,14 @@ export default function MarketPage() {
                   <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 sm:gap-3 sm:min-w-[140px]">
                     <span className="text-lg text-zinc-300 font-bold tracking-tight">{item.price}</span>
                     <button
-                      onClick={() => handleBuy(item.id)}
-                      className="text-[9px] uppercase tracking-widest px-5 py-2 border border-red-950/50 text-red-900 hover:bg-red-950/20 hover:border-red-800/60 hover:text-red-600 transition-all duration-300"
+                      onClick={() => handleBuy(item)}
+                      className={`text-[9px] uppercase tracking-widest px-5 py-2 border transition-all duration-300 ${
+                        item.locked
+                          ? "border-amber-950/50 text-amber-800 hover:bg-amber-950/20 hover:border-amber-700/60 hover:text-amber-600"
+                          : "border-red-950/50 text-red-900 hover:bg-red-950/20 hover:border-red-800/60 hover:text-red-600"
+                      }`}
                     >
-                      {glitchId === item.id ? "[ ERREUR ]" : "[ ACQUÉRIR ]"}
+                      {glitchId === item.id ? "[ ERREUR ]" : item.locked ? "🔒 [ PROTÉGÉ ]" : "[ ACQUÉRIR ]"}
                     </button>
                   </div>
                 </div>
@@ -174,6 +199,65 @@ export default function MarketPage() {
           <p className="text-red-950">Vous n&apos;étiez jamais ici.</p>
         </div>
       </div>
+
+      {/* Password Modal */}
+      <AnimatePresence>
+        {passwordModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center"
+            onClick={() => setPasswordModal(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className={`border p-8 max-w-sm w-full mx-4 space-y-6 bg-[#050505] ${
+                passwordError ? "border-red-800 animate-pulse" : "border-zinc-800"
+              }`}
+            >
+              <div className="text-center space-y-2">
+                <div className="text-red-900 text-lg">🔒</div>
+                <h3 className="text-xs uppercase tracking-[0.5em] text-zinc-500">Accès Restreint</h3>
+                <p className="text-[8px] text-zinc-700">Cet article nécessite une autorisation vendeur.</p>
+              </div>
+              <div>
+                <input
+                  type="password"
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handlePasswordSubmit()}
+                  placeholder="Mot de passe vendeur..."
+                  autoFocus
+                  className={`w-full bg-black border text-xs px-4 py-3 focus:outline-none placeholder:text-zinc-800 transition-colors ${
+                    passwordError ? "border-red-800 text-red-600" : "border-zinc-900 text-zinc-400 focus:border-red-900/50"
+                  }`}
+                />
+                {passwordError && (
+                  <p className="text-[8px] text-red-800 mt-2 uppercase tracking-widest">ACCÈS REFUSÉ — Tentative enregistrée.</p>
+                )}
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setPasswordModal(null)}
+                  className="flex-1 text-[9px] uppercase tracking-widest py-2 border border-zinc-900 text-zinc-700 hover:text-zinc-400 transition-colors"
+                >
+                  [ ANNULER ]
+                </button>
+                <button
+                  onClick={handlePasswordSubmit}
+                  className="flex-1 text-[9px] uppercase tracking-widest py-2 border border-red-950/50 text-red-900 hover:bg-red-950/20 transition-colors"
+                >
+                  [ CONFIRMER ]
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
