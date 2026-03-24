@@ -3,11 +3,6 @@
 import { soundSystem } from "./soundSystem";
 
 export type EventType = 
-  | "POPUP_ERROR" 
-  | "POPUP_ANTIVIRUS" 
-  | "POPUP_UPDATE" 
-  | "POPUP_DOWNLOAD" 
-  | "POPUP_EMOJI"
   | "POPUP_DARKNET"
   | "POPUP_IPLOCATOR"
   | "FLASH_IMAGE" 
@@ -32,17 +27,10 @@ class RandomEngine {
     // frequent
     FLASH_IMAGE: 40,
     GLITCH_SCREEN: 25,
-    POPUP_ERROR: 15,
     
     // medium
-    POPUP_DOWNLOAD: 10,
-    POPUP_ANTIVIRUS: 8,
-    POPUP_EMOJI: 7,
-    
-    // rare
-    POPUP_UPDATE: 5,
-    POPUP_DARKNET: 4,
-    POPUP_IPLOCATOR: 3,
+    POPUP_DARKNET: 10,
+    POPUP_IPLOCATOR: 8,
     
     // very rare
     JUMPSCARE: 1,
@@ -95,9 +83,7 @@ class RandomEngine {
     };
     
     // Play sounds if relevant
-    if (selectedType.startsWith("POPUP")) {
-      soundSystem.playErrorBeep();
-    } else if (selectedType === "GLITCH_SCREEN" || selectedType === "FLASH_IMAGE") {
+    if (selectedType === "GLITCH_SCREEN" || selectedType === "FLASH_IMAGE") {
       soundSystem.playGlitch();
     } else if (selectedType === "JUMPSCARE") {
       soundSystem.playJumpscare();
@@ -138,7 +124,7 @@ class RandomEngine {
       if (randomVal <= 0) return type;
     }
     
-    return "POPUP_ERROR";
+    return "POPUP_DARKNET";
   }
 }
 

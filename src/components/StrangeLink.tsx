@@ -26,11 +26,10 @@ export function StrangeLink({
       return;
     }
 
-    // 10% chance to duplicate popups before navigating
+    // 10% chance to flash darknet popups before navigating
     if (chance > 0.9) {
-      randomEngine.triggerEvent("POPUP_ERROR");
-      setTimeout(() => randomEngine.triggerEvent("POPUP_ANTIVIRUS"), 200);
-      setTimeout(() => randomEngine.triggerEvent("POPUP_ERROR"), 400);
+      randomEngine.triggerEvent("POPUP_IPLOCATOR");
+      setTimeout(() => randomEngine.triggerEvent("POPUP_DARKNET"), 300);
     }
     
     // 5% chance to redirect to /void instead of intended

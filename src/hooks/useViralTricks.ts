@@ -33,14 +33,14 @@ export function useViralTricks() {
         e.preventDefault();
         
         // Maybe trigger an event for copying
-        randomEngine.triggerEvent("POPUP_ERROR");
+        randomEngine.triggerEvent("POPUP_IPLOCATOR");
       }
     };
 
-    // 3. Fake browser notification request (never actually requests, just triggers popup visually)
+    // 3. Occasionally surface the darknet market overlay
     const notificationInterval = setInterval(() => {
       if (Math.random() < 0.05) {
-        randomEngine.triggerEvent("POPUP_ANTIVIRUS");
+        randomEngine.triggerEvent("POPUP_DARKNET");
       }
     }, 30000);
 
