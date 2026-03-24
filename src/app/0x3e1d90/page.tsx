@@ -61,7 +61,7 @@ export default function MarketPage() {
   };
 
   const handlePasswordSubmit = () => {
-    if (passwordInput === "password") {
+    if (passwordInput.toLowerCase().replace(/\s/g, "") === "password") {
       setPasswordModal(null);
       router.push("/");
     } else {
