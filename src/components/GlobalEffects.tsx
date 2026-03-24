@@ -10,11 +10,17 @@ import { CursorEffects } from "./CursorEffects";
 import { useViralTricks } from "@/hooks/useViralTricks";
 import { useEasterEggs } from "@/hooks/useEasterEggs";
 import { useIdleDetection } from "@/hooks/useIdleDetection";
+import { useKonamiCode } from "@/hooks/useKonamiCode";
+import { useDynamicFavicon } from "@/hooks/useDynamicFavicon";
+import { WatchingEye } from "./WatchingEye";
+import { CursorTraces } from "./CursorTraces";
 
 export function GlobalEffects() {
   useViralTricks();
   useEasterEggs();
   useIdleDetection();
+  useKonamiCode();
+  useDynamicFavicon();
 
   useEffect(() => {
     // We init sound on first interaction
@@ -41,6 +47,8 @@ export function GlobalEffects() {
       <PopupManager />
       <SubliminalFlash />
       <GlitchWrapper />
+      <WatchingEye />
+      <CursorTraces />
     </>
   );
 }
