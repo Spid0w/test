@@ -78,33 +78,33 @@ export function RouletteBoard({ onPlaceBet, activeBets, currentChip }: RouletteB
 
                      {/* -- HITBOXES FOR DUO/CARRÉ -- */}
                      
-                     {/* Split Horizontal (Between this number and the one on its right) */}
+                     {/* Split Horizontal */}
                      {colIdx < 11 && (
                        <button
                          onClick={(e) => { e.stopPropagation(); onPlaceBet("split", `split_${num}_${num+3}`, currentChip); }}
-                         className="absolute top-1/4 bottom-1/4 -right-1.5 w-3 z-30 opacity-0 hover:opacity-100 hover:bg-gold/20 flex items-center justify-center"
+                         className={`absolute top-1/4 bottom-1/4 -right-1.5 w-3 z-30 flex items-center justify-center transition-all ${activeBets[`split_${num}_${num+3}`] ? "opacity-100" : "opacity-0 hover:opacity-100 hover:bg-gold/20"}`}
                          title={`Duo ${num}/${num+3}`}
                        >
                          {renderChip(`split_${num}_${num+3}`)}
                        </button>
                      )}
 
-                     {/* Split Vertical (Between this number and the one below it) */}
+                     {/* Split Vertical */}
                      {rowIdx < 2 && (
                        <button
                          onClick={(e) => { e.stopPropagation(); onPlaceBet("split", `split_${num}_${num-1}`, currentChip); }}
-                         className="absolute -bottom-1.5 left-1/4 right-1/4 h-3 z-30 opacity-0 hover:opacity-100 hover:bg-gold/20 flex items-center justify-center"
+                         className={`absolute -bottom-1.5 left-1/4 right-1/4 h-3 z-30 flex items-center justify-center transition-all ${activeBets[`split_${num}_${num-1}`] ? "opacity-100" : "opacity-0 hover:opacity-100 hover:bg-gold/20"}`}
                          title={`Duo ${num}/${num-1}`}
                        >
                          {renderChip(`split_${num}_${num-1}`)}
                        </button>
                      )}
 
-                     {/* Corner (Carré - Intersection below and to the right) */}
+                     {/* Corner (Carré) */}
                      {colIdx < 11 && rowIdx < 2 && (
                         <button
                           onClick={(e) => { e.stopPropagation(); onPlaceBet("corner", `corner_${num}_${num-1}_${num+3}_${num+2}`, currentChip); }}
-                          className="absolute -bottom-1.5 -right-1.5 w-4 h-4 rounded-full z-40 opacity-0 hover:opacity-100 hover:bg-gold/40 flex items-center justify-center"
+                          className={`absolute -bottom-1.5 -right-1.5 w-4 h-4 rounded-full z-40 flex items-center justify-center transition-all ${activeBets[`corner_${num}_${num-1}_${num+3}_${num+2}`] ? "opacity-100" : "opacity-0 hover:opacity-100 hover:bg-gold/40"}`}
                           title={`Carré ${num}/${num-1}/${num+2}/${num+3}`}
                         >
                            {renderChip(`corner_${num}_${num-1}_${num+3}_${num+2}`)}
