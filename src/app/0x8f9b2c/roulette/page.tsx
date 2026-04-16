@@ -66,17 +66,27 @@ export default function RoulettePage() {
     Object.entries(activeBets).forEach(([betId, amount]) => {
       // 1. Pleins (Numéros uniques)
       if (!isNaN(parseInt(betId))) {
-        if (parseInt(betId) === result) totalWin += amount * 36; // 35:1 + stake
+        if (parseInt(betId) === result) totalWin += amount * 36;
       }
-      // 2. Dozaines (Doz1: 1-12, Doz2: 13-24, Doz3: 25-36)
+      // 2. Splits (Duo - "split_num1_num2")
+      else if (betId.startsWith("split_")) {
+        const nums = betId.split("_").slice(1).map(Number);
+        if (nums.includes(result)) totalWin += amount * 18; // 17:1 + stake
+      }
+      // 3. Corners (Carré - "corner_n1_n2_n3_n4")
+      else if (betId.startsWith("corner_")) {
+        const nums = betId.split("_").slice(1).map(Number);
+        if (nums.includes(result)) totalWin += amount * 9; // 8:1 + stake
+      }
+      // 4. Dozaines
       else if (betId === "doz1" && result >= 1 && result <= 12) totalWin += amount * 3;
       else if (betId === "doz2" && result >= 13 && result <= 24) totalWin += amount * 3;
       else if (betId === "doz3" && result >= 25 && result <= 36) totalWin += amount * 3;
-      // 3. Colonnes (Col1: 1,4,7..., Col2: 2,5,8..., Col3: 3,6,9...)
+      // 5. Colonnes
       else if (betId === "col1" && result !== 0 && (result - 1) % 3 === 0) totalWin += amount * 3;
       else if (betId === "col2" && result !== 0 && (result - 2) % 3 === 0) totalWin += amount * 3;
       else if (betId === "col3" && result !== 0 && result % 3 === 0) totalWin += amount * 3;
-      // 4. Chances Simples (1:1)
+      // 6. Chances Simples
       else if (betId === "red" && isResultRed) totalWin += amount * 2;
       else if (betId === "black" && !isResultRed && result !== 0) totalWin += amount * 2;
       else if (betId === "even" && isResultEven) totalWin += amount * 2;
