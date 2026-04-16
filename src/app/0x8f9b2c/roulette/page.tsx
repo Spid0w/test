@@ -51,6 +51,7 @@ export default function RoulettePage() {
     lastBets: {} as Record<string, number>,
     balance: 0 as number | null,
     stopLimit: 0,
+    winLimit: 0,
     initialBalanceSet: false
   });
 
