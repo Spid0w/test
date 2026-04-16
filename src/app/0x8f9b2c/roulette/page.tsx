@@ -23,6 +23,7 @@ export default function RoulettePage() {
   const [balance, setBalance] = useState<number | null>(null);
   const [vaultBalance, setVaultBalance] = useState(0);
   const [stopLimit, setStopLimit] = useState(0);
+  const [winLimit, setWinLimit] = useState(0);
   const [initialBalanceSet, setInitialBalanceSet] = useState(false);
   const [activeBets, setActiveBets] = useState<Record<string, number>>({});
   const [lastBets, setLastBets] = useState<Record<string, number>>({});
@@ -62,9 +63,10 @@ export default function RoulettePage() {
       lastBets,
       balance,
       stopLimit,
+      winLimit,
       initialBalanceSet
     };
-  }, [isSpinning, targetNumber, isAutoMode, activeBets, lastBets, balance, stopLimit, initialBalanceSet]);
+  }, [isSpinning, targetNumber, isAutoMode, activeBets, lastBets, balance, stopLimit, winLimit, initialBalanceSet]);
 
   const repeatLastBetsRaw = useCallback((silent = false) => {
     const s = stateRef.current;
@@ -85,10 +87,17 @@ export default function RoulettePage() {
     const s = stateRef.current;
     if (s.isSpinning || (Object.keys(s.activeBets).length === 0 && Object.keys(s.lastBets).length === 0)) return;
     
-    // SAFETY LIMIT CHECK
+    // SAFETY LIMIT CHECK (LOSS)
     if (s.isAutoMode && s.balance !== null && s.balance <= s.stopLimit) {
        setIsAutoMode(false);
        setMessage(`LIMITE DE ${s.stopLimit}€ ATTEINTE`);
+       return;
+    }
+
+    // SAFETY LIMIT CHECK (WIN)
+    if (s.isAutoMode && s.balance !== null && s.winLimit > 0 && s.balance >= s.winLimit) {
+       setIsAutoMode(false);
+       setMessage(`OBJECTIF DE ${s.winLimit}€ ATTEINT !`);
        return;
     }
 
@@ -316,13 +325,25 @@ export default function RoulettePage() {
                       {isAutoMode ? <Square fill="currentColor" size={20} /> : <Play fill="currentColor" size={20} />}
                       {isAutoMode ? "Stop Auto" : "Auto"}
                   </button>
-                  <div className="flex items-center justify-center gap-3 bg-black/40 rounded-lg p-2 border border-[#3f2b1d]">
+                   <div className="flex items-center justify-center gap-3 bg-black/40 rounded-lg p-2 border border-[#3f2b1d]">
                      <ShieldAlert size={14} className="text-[#8b4513]" />
-                     <span className="text-[10px] uppercase font-bold text-[#8b4513]">Arrêt à :</span>
-                     <div className="flex items-center gap-2">
-                        <button onClick={() => setStopLimit(Math.max(0, stopLimit - 5))} className="hover:text-white"><Minus size={14}/></button>
-                        <span className="text-sm font-black text-white w-8 text-center">{stopLimit}€</span>
-                        <button onClick={() => setStopLimit(stopLimit + 5)} className="hover:text-white"><Plus size={14}/></button>
+                     <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-4">
+                           <span className="text-[8px] uppercase font-bold text-[#8b4513] w-14">Arrêt Min :</span>
+                           <div className="flex items-center gap-2">
+                              <button onClick={() => setStopLimit(Math.max(0, stopLimit - 5))} className="hover:text-white"><Minus size={12}/></button>
+                              <span className="text-xs font-black text-white w-8 text-center">{stopLimit}€</span>
+                              <button onClick={() => setStopLimit(stopLimit + 5)} className="hover:text-white"><Plus size={12}/></button>
+                           </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                           <span className="text-[8px] uppercase font-bold text-[#d4af37] w-14">Arrêt Max :</span>
+                           <div className="flex items-center gap-2">
+                              <button onClick={() => setWinLimit(Math.max(0, winLimit - 5))} className="hover:text-white"><Minus size={12}/></button>
+                              <span className="text-xs font-black text-[#d4af37] w-8 text-center">{winLimit === 0 ? "OFF" : `${winLimit}€`}</span>
+                              <button onClick={() => setWinLimit(winLimit + 10)} className="hover:text-white"><Plus size={12}/></button>
+                           </div>
+                        </div>
                      </div>
                   </div>
                </div>
