@@ -38,17 +38,17 @@ export default function RoulettePage() {
 
   const workerRef = useRef<Worker | null>(null);
   
-  // CRITICAL: Master state refs for the Web Worker listener to avoid closure bugs
+  // Master state ref for background callbacks
   const stateRef = useRef({
     isSpinning: false,
     targetNumber: null as number | null,
     isAutoMode: false,
     activeBets: {} as Record<string, number>,
     lastBets: {} as Record<string, number>,
-    balance: 0 as number | null
+    balance: 0 as number | null,
+    initialBalanceSet: false
   });
 
-  // Sync refs with state on every change
   useEffect(() => {
     stateRef.current = {
       isSpinning,
@@ -56,11 +56,53 @@ export default function RoulettePage() {
       isAutoMode,
       activeBets,
       lastBets,
-      balance
+      balance,
+      initialBalanceSet
     };
-  }, [isSpinning, targetNumber, isAutoMode, activeBets, lastBets, balance]);
+  }, [isSpinning, targetNumber, isAutoMode, activeBets, lastBets, balance, initialBalanceSet]);
 
-  const resolveBets = useCallback((result: number) => {
+  // REPEAT LAST BETS (No state dependencies to avoid closure issues)
+  const repeatLastBetsRaw = useCallback((silent = false) => {
+    const s = stateRef.current;
+    if (s.isSpinning || s.balance === null || Object.keys(s.lastBets).length === 0) return false;
+    const totalToRepeat = Object.values(s.lastBets).reduce((a, b) => a + b, 0);
+    if (totalToRepeat > s.balance) {
+      if (!silent) setMessage("PAS ASSEZ D'OR");
+      return false;
+    }
+    const currentOnBoard = Object.values(s.activeBets).reduce((a, b) => a + b, 0);
+    setBalance(prev => (prev !== null ? prev + currentOnBoard - totalToRepeat : prev));
+    setActiveBets({ ...s.lastBets });
+    if (!silent) setMessage("DERNIÈRE MISE RESTAURÉE");
+    return true;
+  }, []);
+
+  // START SPIN (No dependencies)
+  const startSpinRaw = useCallback(() => {
+    const s = stateRef.current;
+    if (s.isSpinning || (Object.keys(s.activeBets).length === 0 && Object.keys(s.lastBets).length === 0)) return;
+    
+    // If no bets on board but we have lastBets, try to repeat
+    if (Object.keys(s.activeBets).length === 0) {
+       const repeated = repeatLastBetsRaw(true);
+       if (!repeated) {
+          setIsAutoMode(false);
+          setMessage("AUTO-MODE ARRÊTÉ");
+          return;
+       }
+    }
+
+    const result = Math.floor(Math.random() * 37);
+    setTargetNumber(result);
+    setIsSpinning(true);
+    setIsEraserMode(false);
+    setMessage(s.isAutoMode ? "[AUTO] LA BILLE ROULE..." : "LA BILLE ROULE...");
+    
+    workerRef.current?.postMessage({ action: "startTimer", delay: 6500 });
+  }, [repeatLastBetsRaw]);
+
+  // RESOLVE BETS
+  const resolveBetsRaw = useCallback((result: number) => {
     let totalWin = 0;
     const currentBets = stateRef.current.activeBets;
     const totalBet = Object.values(currentBets).reduce((a, b) => a + b, 0);
@@ -105,53 +147,25 @@ export default function RoulettePage() {
       ...prev
     ]);
     setIsSpinning(false);
+    // Keep activeBets in lastBets before clearing
+    setLastBets({ ...currentBets });
     setActiveBets({});
 
     if (totalWin > 0) {
       setMessage(`${stateRef.current.isAutoMode ? "[AUTO] " : ""}GAGNÉ : ${result} (${finalWin.toFixed(2)}€)`);
-      if (finalWin > highScore) { setHighScore(finalWin); localStorage.setItem("roulette_highscore", finalWin.toString()); }
     } else if (isPartage) {
       setMessage(`${stateRef.current.isAutoMode ? "[AUTO] " : ""}ZÉRO ! PARTAGE : ${(finalWin).toFixed(2)}€ RENDUS`);
     } else {
       setMessage(`${stateRef.current.isAutoMode ? "[AUTO] " : ""}RÉSULTAT : ${result} - LA BANQUE GAGNE`);
     }
 
+    // Trigger next auto round after 2s
     if (stateRef.current.isAutoMode) {
       workerRef.current?.postMessage({ action: "startTimer", delay: 2000 });
     }
-  }, [highScore]);
-
-  const startSpin = useCallback(() => {
-    const curBets = stateRef.current.activeBets;
-    if (stateRef.current.isSpinning || Object.keys(curBets).length === 0) return;
-    
-    setLastBets({ ...curBets });
-    const result = Math.floor(Math.random() * 37);
-    setTargetNumber(result);
-    setIsSpinning(true);
-    setIsEraserMode(false);
-    setMessage(stateRef.current.isAutoMode ? "[AUTO] LA BILLE ROULE..." : "LA BILLE ROULE...");
-    
-    // DELAY: 6.5s (Wheel anim is 6s)
-    workerRef.current?.postMessage({ action: "startTimer", delay: 6500 });
   }, []);
 
-  const repeatLastBets = useCallback((silent = false) => {
-    const s = stateRef.current;
-    if (s.isSpinning || s.balance === null || Object.keys(s.lastBets).length === 0) return false;
-    const totalToRepeat = Object.values(s.lastBets).reduce((a, b) => a + b, 0);
-    if (totalToRepeat > s.balance) {
-      if (!silent) setMessage("BALANCE INSUFFISANTE");
-      return false;
-    }
-    const totalCurrentBets = Object.values(s.activeBets).reduce((a, b) => a + b, 0);
-    setBalance(prev => (prev !== null ? prev + totalCurrentBets - totalToRepeat : prev));
-    setActiveBets({ ...s.lastBets });
-    if (!silent) setMessage("DERNIÈRE MISE RESTAURÉE");
-    return true;
-  }, []);
-
-  // Set up Worker once
+  // Set up Worker
   useEffect(() => {
     const saved = localStorage.getItem("roulette_highscore");
     if (saved) setHighScore(parseFloat(saved));
@@ -161,22 +175,32 @@ export default function RoulettePage() {
       if (e.data.action === "timerExpired") {
         const s = stateRef.current;
         if (s.isSpinning) {
-          resolveBets(s.targetNumber!);
+          resolveBetsRaw(s.targetNumber!);
         } else if (s.isAutoMode) {
-          const ready = Object.keys(stateRef.current.activeBets).length > 0 || repeatLastBets(true);
-          if (ready) startSpin();
-          else {
-            setIsAutoMode(false);
-            setMessage("AUTO-MODE ARRÊTÉ");
-          }
+          startSpinRaw();
         }
       }
     };
-
     return () => workerRef.current?.terminate();
-  }, [resolveBets, repeatLastBets, startSpin]);
+  }, [resolveBetsRaw, startSpinRaw]);
 
-  const handleInitialBalance = (amount: number) => { setBalance(amount); setInitialBalanceSet(true); };
+  // TOGGLE AUTO MODE
+  const toggleAutoMode = () => {
+    const nextVal = !isAutoMode;
+    setIsAutoMode(nextVal);
+    
+    if (nextVal) {
+       // Start immediately if possible
+       const s = stateRef.current;
+       if (!s.isSpinning) {
+          // Force a micro-task or brief exit to ensure startSpin sees updated wasAutoMode
+          setTimeout(() => startSpinRaw(), 50);
+       }
+    } else {
+       workerRef.current?.postMessage({ action: "stopTimer" });
+       setMessage("AUTO-MODE ARRÊTÉ");
+    }
+  };
 
   const placeBet = (type: string, id: string | number, amount: number) => {
     if (isSpinning || balance === null) return;
@@ -187,13 +211,11 @@ export default function RoulettePage() {
       if (existingAmount > 0) {
         setBalance((prev) => (prev !== null ? prev + existingAmount : prev));
         setActiveBets((prev) => { const next = { ...prev }; delete next[betId]; return next; });
-        setMessage("MISE EFFACÉE");
       }
       return;
     }
     const totalCurrentBets = Object.values(activeBets).reduce((a, b) => a + b, 0);
-    if (totalCurrentBets + amount > 50) { setMessage("LIMITE 50€"); return; }
-    if (amount > balance) { setMessage("PAS ASSEZ D'OR"); return; }
+    if (totalCurrentBets + amount > 50 || amount > balance) return;
     setActiveBets((prev) => ({ ...prev, [betId]: (prev[betId] || 0) + amount }));
     setBalance((prev) => (prev !== null ? prev - amount : 0));
   };
@@ -201,12 +223,11 @@ export default function RoulettePage() {
   const doubleCurrentBets = () => {
     if (isSpinning || balance === null || Object.keys(activeBets).length === 0) return;
     const totalCurrentBets = Object.values(activeBets).reduce((a, b) => a + b, 0);
-    if (totalCurrentBets > balance || (totalCurrentBets * 2) > 50) { setMessage("ACTION IMPOSSIBLE"); return; }
+    if (totalCurrentBets > balance || (totalCurrentBets * 2) > 50) return;
     const nextBets = { ...activeBets };
     Object.keys(nextBets).forEach(id => { nextBets[id] *= 2; });
     setActiveBets(nextBets);
     setBalance(prev => (prev !== null ? prev - totalCurrentBets : prev));
-    setMessage("MISES DOUBLÉES !");
   };
 
   const resetCurrentBets = () => {
@@ -214,7 +235,6 @@ export default function RoulettePage() {
     const totalCurrentBets = Object.values(activeBets).reduce((a, b) => a + b, 0);
     setBalance((prev) => (prev !== null ? prev + totalCurrentBets : prev));
     setActiveBets({});
-    setMessage("MISES RÉINITIALISÉES");
     setIsAutoMode(false);
   };
 
@@ -241,7 +261,6 @@ export default function RoulettePage() {
         <div className="grid lg:grid-cols-[1fr_1.3fr] gap-8 items-start">
           <div className="flex flex-col items-center gap-6">
             <div className="w-full relative py-2">
-               {/* Pass a do-nothing callback as Worker handles the logic */}
                <RouletteWheel isSpinning={isSpinning} targetNumber={targetNumber} onSpinEnd={() => {}} />
                <div className="absolute bottom-[-10px] left-1/2 -translate-x-1/2 flex gap-1.5">{history.map((num, i) => (<div key={i} className={`w-7 h-7 rounded-full border border-gold/40 flex items-center justify-center text-[10px] font-bold shadow-xl ${num === 0 ? "bg-green-700" : REDS.includes(num) ? "bg-red-800" : "bg-zinc-900"}`} style={{ opacity: 1 - i * 0.1 }}>{num}</div>))}</div>
             </div>
@@ -253,15 +272,15 @@ export default function RoulettePage() {
                   <AnimatePresence mode="wait">
                     <motion.div key={message} initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.2 }} className="flex flex-col items-center gap-2">
                       {targetNumber !== null && !isSpinning && (<div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl font-black border-2 border-white/20 shadow-lg ${targetNumber === 0 ? "bg-green-700" : REDS.includes(targetNumber) ? "bg-red-800" : "bg-black"}`}>{targetNumber}</div>)}
-                      <span className="text-xl md:text-2xl font-bold uppercase tracking-widest text-[#e5c299]">{message}</span>
+                      <span className="text-xl md:text-2xl font-bold uppercase tracking-widest text-[#e5c299] font-mono">{message}</span>
                     </motion.div>
                   </AnimatePresence>
                </div>
             </div>
 
             <div className="flex w-full gap-3">
-               <button onClick={() => { setIsAutoMode(!isAutoMode); if(isAutoMode) workerRef.current?.postMessage({action:"stopTimer"}); }} className={`flex-1 py-5 rounded-xl border-4 font-black text-xl uppercase transition-all flex items-center justify-center gap-3 ${isAutoMode ? "bg-red-950 border-red-500 text-red-500 animate-pulse" : "bg-[#1b110a] border-[#3f2b1d] text-[#d4af37] hover:border-[#d4af37]"}`}>{isAutoMode ? <Square fill="currentColor" size={20} /> : <Play fill="currentColor" size={20} />}{isAutoMode ? "Stop Auto" : "Auto"}</button>
-               <button onClick={startSpin} disabled={isSpinning || Object.keys(activeBets).length === 0} className="flex-[2] py-5 bg-gradient-to-tr from-[#8b4513] to-[#d4af37] text-black font-black text-2xl rounded-xl shadow-[0_8px_0_#3f2b1d] active:shadow-none active:translate-y-2 transition-all disabled:opacity-50 disabled:grayscale uppercase">Lancer la bille</button>
+               <button onClick={toggleAutoMode} className={`flex-1 py-5 rounded-xl border-4 font-black text-xl uppercase transition-all flex items-center justify-center gap-3 ${isAutoMode ? "bg-red-950 border-red-500 text-red-500 animate-pulse" : "bg-[#1b110a] border-[#3f2b1d] text-[#d4af37] hover:border-[#d4af37]"}`}>{isAutoMode ? <Square fill="currentColor" size={20} /> : <Play fill="currentColor" size={20} />}{isAutoMode ? "Stop Auto" : "Auto"}</button>
+               <button onClick={startSpinRaw} disabled={isSpinning || (Object.keys(activeBets).length === 0 && Object.keys(lastBets).length === 0)} className="flex-[2] py-5 bg-gradient-to-tr from-[#8b4513] to-[#d4af37] text-black font-black text-2xl rounded-xl shadow-[0_8px_0_#3f2b1d] active:shadow-none active:translate-y-2 transition-all disabled:opacity-50 disabled:grayscale uppercase">Lancer la bille</button>
             </div>
           </div>
 
@@ -270,7 +289,7 @@ export default function RoulettePage() {
             <div className="grid grid-cols-3 gap-2">
                <button onClick={() => { setIsEraserMode(!isEraserMode); setIsAutoMode(false); }} className={`flex items-center justify-center gap-2 py-3 rounded-lg border-2 transition-all font-black text-xs uppercase ${isEraserMode ? "bg-red-900 border-red-500 text-white shadow-[0_0_15px_rgba(255,0,0,0.3)] animate-pulse" : "bg-zinc-900 border-[#3f2b1d] text-[#8b4513] hover:border-[#d4af37]"}`}><Eraser size={16} /> Gomme</button>
                <button onClick={doubleCurrentBets} disabled={isSpinning || Object.keys(activeBets).length === 0} className="flex items-center justify-center gap-2 py-3 rounded-lg border-2 bg-zinc-900 border-[#3f2b1d] text-[#e5c299] font-black text-xs uppercase hover:border-[#d4af37] hover:text-[#d4af37] disabled:opacity-50"><TrendingUp size={16} /> Doubler (x2)</button>
-               <button onClick={() => repeatLastBets()} disabled={isSpinning || Object.keys(lastBets).length === 0} className="flex items-center justify-center gap-2 py-3 rounded-lg border-2 bg-zinc-900 border-[#3f2b1d] text-[#e5c299] font-black text-xs uppercase hover:border-[#d4af37] hover:text-[#d4af37] disabled:opacity-50"><RotateCcw size={16} /> Répéter</button>
+               <button onClick={() => repeatLastBetsRaw()} disabled={isSpinning || Object.keys(lastBets).length === 0} className="flex items-center justify-center gap-2 py-3 rounded-lg border-2 bg-zinc-900 border-[#3f2b1d] text-[#e5c299] font-black text-xs uppercase hover:border-[#d4af37] hover:text-[#d4af37] disabled:opacity-50"><RotateCcw size={16} /> Répéter</button>
             </div>
             <div className="bg-black/40 p-5 rounded-xl border border-[#3f2b1d]"><div className="flex justify-between items-center mb-4"><span className="text-[10px] uppercase tracking-widest text-[#d4af37]">Choisir vos jetons</span><button onClick={resetCurrentBets} className="flex items-center gap-2 text-[10px] hover:text-white transition-colors"><RefreshCw size={12} /> ANNULER TOUT</button></div><div className="flex justify-between gap-1.5">{CHIP_VALUES.map((val) => (<button key={val} onClick={() => { setCurrentChip(val); setIsEraserMode(false); }} className={`relative w-12 h-12 md:w-16 md:h-16 rounded-full border-4 border-dashed flex items-center justify-center font-black transition-all text-xs md:text-sm ${currentChip === val && !isEraserMode ? "scale-110 border-white shadow-[0_0_15px_white] z-10" : "border-[#3f2b1d] opacity-60 hover:opacity-100 hover:scale-105"} ${val < 1 ? "bg-zinc-500 text-black" : val < 10 ? "bg-blue-800 text-white" : val < 20 ? "bg-red-800 text-white" : "bg-black text-[#d4af37] border-[#d4af37]"}`}>{val}€</button>))}</div></div>
             <div className="flex items-center gap-3 text-xs text-[#8b4513] italic px-2"><History size={14} /> Mise totale ce tour : {Object.values(activeBets).reduce((a, b) => a + b, 0).toFixed(2)}€ / 50€</div>
