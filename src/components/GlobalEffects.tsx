@@ -16,8 +16,12 @@ import { useKonamiCode } from "@/hooks/useKonamiCode";
 import { useCursedCopy } from "@/hooks/useCursedCopy";
 import { WatchingEye } from "./WatchingEye";
 import { CursorTraces } from "./CursorTraces";
+import { usePathname } from "next/navigation";
 
 export function GlobalEffects() {
+  const pathname = usePathname();
+  const isRoulettePage = pathname === "/0x8f9b2c/roulette";
+
   useViralTricks();
   useEasterEggs();
   useIdleDetection();
@@ -39,9 +43,12 @@ export function GlobalEffects() {
     return () => {
       window.removeEventListener("click", initSoundAndEngine);
       window.removeEventListener("keydown", initSoundAndEngine);
-      randomEngine.stop(); // If we unmount completely, stop engine
+      randomEngine.stop(); 
     };
   }, []);
+
+  // DIABLE ALL HORROR/GLITCH EFFECTS ON THE ROULETTE PAGE
+  if (isRoulettePage) return null;
 
   return (
     <>
