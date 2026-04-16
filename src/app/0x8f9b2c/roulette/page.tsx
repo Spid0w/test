@@ -238,6 +238,11 @@ export default function RoulettePage() {
     setIsAutoMode(false);
   };
 
+  const handleInitialBalance = (amount: number) => { 
+    setBalance(amount); 
+    setInitialBalanceSet(true); 
+  };
+
   const sessionProfit = sessionHistory.reduce((acc, r) => acc + r.net, 0);
 
   return (
