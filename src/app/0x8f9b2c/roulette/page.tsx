@@ -45,6 +45,12 @@ export default function RoulettePage() {
   const [highScore, setHighScore] = useState(0);
   const [maxBalance, setMaxBalance] = useState<number>(0);
   const [minBalance, setMinBalance] = useState<number>(0);
+  const [showStats, setShowStats] = useState(false);
+  const [numberFrequency, setNumberFrequency] = useState<Record<number, number>>(() => {
+    const init: Record<number, number> = {};
+    for (let i = 0; i <= 36; i++) init[i] = 0;
+    return init;
+  });
 
   const workerRef = useRef<Worker | null>(null);
   
@@ -167,6 +173,9 @@ export default function RoulettePage() {
     setIsSpinning(false);
     setLastBets({ ...currentBets });
     setActiveBets({});
+
+    // UPDATE FREQUENCY
+    setNumberFrequency(prev => ({ ...prev, [result]: (prev[result] || 0) + 1 }));
 
     if (finalWin > 0) {
       setMessage(`${stateRef.current.isAutoMode ? "[AUTO] " : ""}GAGNÉ : ${result} (${finalWin.toFixed(2)}€)`);
@@ -298,8 +307,9 @@ export default function RoulettePage() {
                 </div>
              </div>
              <div className="flex gap-2">
-                <button onClick={() => { setShowHistory(!showHistory); setShowLeaderboard(false); }} className="flex items-center gap-2 bg-[#1b110a] px-3 py-1.5 rounded border border-[#d4af37]/30 hover:bg-[#3f2b1d] text-xs md:text-sm"><History size={16} className="text-[#d4af37]" /><span className="hidden sm:inline">HISTORIQUE</span></button>
-                <button onClick={() => { setShowLeaderboard(!showLeaderboard); setShowHistory(false); }} className="flex items-center gap-2 bg-[#1b110a] px-3 py-1.5 rounded border border-[#d4af37]/30 hover:bg-[#3f2b1d] text-xs md:text-sm"><Trophy size={16} className="text-[#d4af37]" /><span className="hidden sm:inline">CLASSEMENT</span></button>
+                <button onClick={() => { setShowStats(!showStats); setShowHistory(false); setShowLeaderboard(false); }} className="flex items-center gap-2 bg-[#1b110a] px-3 py-1.5 rounded border border-[#d4af37]/30 hover:bg-[#3f2b1d] text-xs md:text-sm"><TrendingUp size={16} className="text-[#d4af37]" /><span className="hidden sm:inline">STATS</span></button>
+                <button onClick={() => { setShowHistory(!showHistory); setShowLeaderboard(false); setShowStats(false); }} className="flex items-center gap-2 bg-[#1b110a] px-3 py-1.5 rounded border border-[#d4af37]/30 hover:bg-[#3f2b1d] text-xs md:text-sm"><History size={16} className="text-[#d4af37]" /><span className="hidden sm:inline">HISTORIQUE</span></button>
+                <button onClick={() => { setShowLeaderboard(!showLeaderboard); setShowHistory(false); setShowStats(false); }} className="flex items-center gap-2 bg-[#1b110a] px-3 py-1.5 rounded border border-[#d4af37]/30 hover:bg-[#3f2b1d] text-xs md:text-sm"><Trophy size={16} className="text-[#d4af37]" /><span className="hidden sm:inline">CLASSEMENT</span></button>
                 <div className="bg-black/50 border-2 border-[#d4af37] px-4 py-1.5 rounded-full flex items-center gap-2"><Coins size={18} className="text-[#d4af37]" /><span className="text-lg md:text-2xl font-black text-white">{balance !== null ? balance.toFixed(2) : "0.00"}€</span></div>
              </div>
           </div>
@@ -409,6 +419,83 @@ export default function RoulettePage() {
       <AnimatePresence>{!initialBalanceSet && (<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4"><motion.div initial={{ scale: 0.8, rotateX: 20 }} animate={{ scale: 1, rotateX: 0 }} className="bg-[#1a110a] border-4 border-[#d4af37] p-8 max-w-sm w-full rounded-2xl shadow-[0_0_120px_rgba(212,175,55,0.3)] text-center"><Trophy className="mx-auto text-[#d4af37] mb-4" size={42} /><h2 className="text-2xl font-black mb-1 text-white uppercase italic">Bienvenue, Étranger</h2><p className="text-[#8b4513] mb-8 text-sm italic">Combien d'or as-tu dans ton sac ? (1€ - 50€)</p><div className="grid grid-cols-2 gap-3 mb-6">{[10, 20, 30, 50].map((num) => (<button key={num} onClick={() => handleInitialBalance(num)} className="py-3 bg-[#3f2b1d] border border-[#d4af37]/30 rounded-lg font-bold hover:bg-[#d4af37] hover:text-black transition-all">{num}€</button>))}</div><div className="text-[9px] text-[#3f2b1d] uppercase tracking-widest mt-4">La fortune sourit aux audacieux... ou les ruine.</div></motion.div></motion.div>)}</AnimatePresence>
       <AnimatePresence>{showLeaderboard && (<motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} className="fixed inset-y-0 right-0 w-full max-w-xs z-[60] bg-[#1a110a] border-l-4 border-[#d4af37]/40 p-8 shadow-2xl shadow-black"><button onClick={() => setShowLeaderboard(false)} className="absolute top-4 right-4 text-[#d4af37] hover:rotate-90 transition-transform"><RefreshCw size={24} className="rotate-45" /></button><h3 className="text-xl font-black mb-8 italic border-b border-[#3f2b1d] pb-2 text-[#d4af37]">VOS RECORDS</h3><div className="space-y-6"><div className="bg-black/40 p-4 rounded border border-[#d4af37]/20"><div className="text-[10px] uppercase text-[#8b4513] mb-1 font-black">Record de gain en un tour</div><div className="text-3xl font-black text-white">{highScore.toFixed(2)}€</div></div><div className="text-[10px] text-[#5c4033] leading-relaxed italic border-t border-[#3f2b1d] pt-4">Note : Vos records sont sauvegardés localement. Pour un classement mondial, une base de données serait requise.</div></div></motion.div>)}</AnimatePresence>
       <AnimatePresence>{showHistory && (<motion.div initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} className="fixed inset-y-0 left-0 w-full max-w-sm z-[60] bg-[#1a110a] border-r-4 border-[#d4af37]/40 p-6 shadow-2xl shadow-black overflow-hidden flex flex-col"><div className="flex justify-between items-center mb-8 border-b border-[#3f2b1d] pb-2"><h3 className="text-xl font-black italic text-[#d4af37]">JOURNAL DE BORD</h3><button onClick={() => setShowHistory(false)} className="text-[#8b4513] hover:text-[#d4af37]"><ArrowLeft size={24} /></button></div><div className="bg-black/60 p-4 rounded border border-[#d4af37]/20 mb-6 flex flex-col gap-3"><div className="flex justify-between items-center"><div><div className="text-[10px] uppercase text-[#8b4513] font-black">Profit Session</div><div className={`text-2xl font-black ${sessionProfit >= 0 ? "text-green-500" : "text-red-500"}`}>{sessionProfit >= 0 ? "+" : ""}{sessionProfit.toFixed(2)}€</div></div><ListOrdered size={32} className="opacity-20 text-[#d4af37]" /></div><div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#3f2b1d]"><div><div className="text-[8px] uppercase text-[#5c4033] font-black">Sommet (Max)</div><div className="text-xs font-bold text-[#d4af37]">{maxBalance.toFixed(2)}€</div></div><div className="text-right"><div className="text-[8px] uppercase text-[#5c4033] font-black">Abysse (Min)</div><div className="text-xs font-bold text-white">{minBalance.toFixed(2)}€</div></div></div></div><div className="flex-1 overflow-auto pr-2 space-y-2 custom-scrollbar">{sessionHistory.length === 0 ? (<div className="text-center py-10 text-[#3f2b1d] italic text-sm">Aucune manche enregistrée...</div>) : (sessionHistory.map((round) => (<div key={round.id} className="bg-black/40 border border-[#3f2b1d] p-3 rounded flex justify-between items-center group hover:border-[#d4af37]/40 transition-colors"><div className="flex items-center gap-3"><div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-black border border-white/10 ${round.result === 0 ? "bg-green-700" : round.color === "ROUGE" ? "bg-red-800" : "bg-zinc-900"}`}>{round.result}</div><div><div className="text-[9px] text-[#5c4033] uppercase">Manche #{round.id}</div><div className="text-[10px] text-[#8b4513]">Mise: {round.totalBet}€ | Gain: {round.totalWin}€</div></div></div><div className={`text-sm font-black ${round.net >= 0 ? "text-green-500" : "text-red-500"}`}>{round.net >= 0 ? "+" : ""}{round.net.toFixed(2)}€</div></div>)))}</div><div className="mt-6 pt-4 border-t border-[#3f2b1d] text-[9px] text-[#3f2b1d] text-center uppercase">Historique temporaire (Reset au rafraîchissement)</div></motion.div>)}</AnimatePresence>
+
+      <AnimatePresence>
+        {showStats && (
+          <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} className="fixed inset-y-0 right-0 w-full max-w-sm z-[60] bg-[#1a110a] border-l-4 border-[#d4af37]/40 p-6 shadow-2xl shadow-black overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center mb-8 border-b border-[#3f2b1d] pb-2">
+              <h3 className="text-xl font-black italic text-[#d4af37]">STATISTIQUES SESSION</h3>
+              <button onClick={() => setShowStats(false)} className="text-[#8b4513] hover:text-[#d4af37]"><RefreshCw size={24} className="rotate-45" /></button>
+            </div>
+            
+            <div className="flex-1 overflow-auto space-y-8 pr-2 custom-scrollbar">
+              {/* HOT NUMBERS */}
+              <section>
+                <div className="flex items-center gap-2 mb-4 text-[#d4af37]">
+                  <Play size={16} fill="currentColor" className="-rotate-90" />
+                  <h4 className="text-[10px] font-black uppercase tracking-widest">Chiffres Chauds (Hot)</h4>
+                </div>
+                <div className="grid grid-cols-5 gap-2">
+                   {Object.entries(numberFrequency)
+                     .sort(([,a], [,b]) => b - a)
+                     .slice(0, 5)
+                     .map(([num, count]) => (
+                       <div key={num} className="flex flex-col items-center gap-1">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-black border border-white/10 shadow-lg ${num === "0" ? "bg-green-700" : REDS.includes(Number(num)) ? "bg-red-800" : "bg-black"}`}>{num}</div>
+                          <div className="text-[8px] text-[#8b4513] font-bold">{count}x</div>
+                       </div>
+                   ))}
+                </div>
+              </section>
+
+              {/* COLD NUMBERS */}
+              <section>
+                <div className="flex items-center gap-2 mb-4 text-[#5c4033]">
+                  <RotateCcw size={16} className="text-[#5c4033]" />
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-[#5c4033]">Chiffres Froids (Cold)</h4>
+                </div>
+                <div className="grid grid-cols-5 gap-2">
+                   {Object.entries(numberFrequency)
+                     .sort(([,a], [,b]) => a - b)
+                     .slice(0, 5)
+                     .map(([num, count]) => (
+                       <div key={num} className="flex flex-col items-center gap-1">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-black border border-white/10 shadow-lg opacity-40 ${num === "0" ? "bg-green-700" : REDS.includes(Number(num)) ? "bg-red-800" : "bg-black"}`}>{num}</div>
+                          <div className="text-[8px] text-[#3f2b1d] font-bold">{count}x</div>
+                       </div>
+                   ))}
+                </div>
+              </section>
+
+              {/* COLOR DISTRIBUTION */}
+              <section className="bg-black/40 p-4 rounded-xl border border-[#3f2b1d]">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-[#8b4513] mb-4">Répartition Couleurs</h4>
+                  {(() => {
+                    const total = Object.values(numberFrequency).reduce((a, b) => a + b, 0) || 1;
+                    const green = numberFrequency[0] || 0;
+                    const red = Object.entries(numberFrequency).filter(([n]) => REDS.includes(Number(n))).reduce((a, [,b]) => a + b, 0);
+                    const black = total - red - green;
+                    
+                    return (
+                      <div className="space-y-4">
+                        <div className="h-3 w-full bg-zinc-900 rounded-full overflow-hidden flex border border-white/5 shadow-inner">
+                           <div className="bg-red-800" style={{ width: `${(red/total)*100}%` }} />
+                           <div className="bg-black" style={{ width: `${(black/total)*100}%` }} />
+                           <div className="bg-green-700" style={{ width: `${(green/total)*100}%` }} />
+                        </div>
+                        <div className="flex justify-between text-[8px] font-black uppercase tracking-tighter italic">
+                           <span className="text-red-500">ROUGES: {Math.round((red/total)*100)}%</span>
+                           <span className="text-zinc-500">NOIRS: {Math.round((black/total)*100)}%</span>
+                           <span className="text-green-500">VERTS: {Math.round((green/total)*100)}%</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+              </section>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
