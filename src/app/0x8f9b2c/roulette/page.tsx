@@ -103,7 +103,7 @@ export default function RoulettePage() {
        const repeated = repeatLastBetsRaw(true);
        if (!repeated) {
           setIsAutoMode(false);
-          setMessage("AUTO-MODE ARRÊTÉ");
+          setMessage("OR INSUFFISANT / PAS DE MISE");
           return;
        }
     }
@@ -168,13 +168,17 @@ export default function RoulettePage() {
     setLastBets({ ...currentBets });
     setActiveBets({});
 
-    if (totalWin > 0) {
+    if (finalWin > 0) {
       setMessage(`${stateRef.current.isAutoMode ? "[AUTO] " : ""}GAGNÉ : ${result} (${finalWin.toFixed(2)}€)`);
     } else if (isPartage) {
       setMessage(`${stateRef.current.isAutoMode ? "[AUTO] " : ""}ZÉRO ! PARTAGE : ${(finalWin).toFixed(2)}€ RENDUS`);
     } else {
       setMessage(`${stateRef.current.isAutoMode ? "[AUTO] " : ""}RÉSULTAT : ${result} - LA BANQUE GAGNE`);
     }
+
+    // UPDATE RECORDS USING FUNCTIONAL UPDATES
+    setMaxBalance(prev => nextBalance > prev ? nextBalance : prev);
+    setMinBalance(prev => nextBalance < prev ? nextBalance : prev);
 
     // SAFETY CHECKS (MOVE TO END OF ROUND)
     if (stateRef.current.isAutoMode) {
@@ -185,11 +189,14 @@ export default function RoulettePage() {
        } else if (s.stopWinEnabled && nextBalance >= s.stopWinValue) {
           setIsAutoMode(false);
           setMessage("STOP WIN ATTEINT !");
+       } else if (Object.keys(currentBets).length === 0 && Object.keys(s.lastBets).length === 0) {
+          setIsAutoMode(false);
+          setMessage("AUCUNE MISE À RÉPÉTER");
        } else {
           workerRef.current?.postMessage({ action: "startTimer", delay: 2000 });
        }
     }
-  }, [maxBalance, minBalance]);
+  }, []);
 
   useEffect(() => {
     const saved = localStorage.getItem("roulette_highscore");
