@@ -100,15 +100,12 @@ export default function RoulettePage() {
 
   const startSpinRaw = useCallback(() => {
     const s = stateRef.current;
-    if (s.isSpinning || (Object.keys(s.activeBets).length === 0 && Object.keys(s.lastBets).length === 0)) return;
+    if (s.isSpinning) return;
     
-    if (Object.keys(s.activeBets).length === 0) {
-       const repeated = repeatLastBetsRaw(true);
-       if (!repeated) {
-          setIsAutoMode(false);
-          setMessage("OR INSUFFISANT / PAS DE MISE");
-          return;
-       }
+    // In Auto-Mode, try to repeat last bets if board is empty, 
+    // but DON'T stop if it fails - just spin empty for stats/fun.
+    if (s.isAutoMode && Object.keys(s.activeBets).length === 0) {
+       repeatLastBetsRaw(true);
     }
 
     const result = Math.floor(Math.random() * 37);
@@ -189,9 +186,6 @@ export default function RoulettePage() {
        } else if (s.stopWinEnabled && nextBalance >= s.stopWinValue) {
           setIsAutoMode(false);
           setMessage("STOP WIN ATTEINT !");
-       } else if (Object.keys(currentBets).length === 0 && Object.keys(s.lastBets).length === 0) {
-          setIsAutoMode(false);
-          setMessage("AUCUNE MISE À RÉPÉTER");
        } else {
           workerRef.current?.postMessage({ action: "startTimer", delay: 2000 });
        }
