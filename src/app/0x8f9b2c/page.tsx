@@ -18,6 +18,7 @@ const KEYWORD_REDIRECTS: Record<string, string> = {
   darknet: "/0x2d7f1a",
   weapons: "/0x2d7f1a",
   boulbix: "/0x0d1f2e",
+  roulette: "/0x8f9b2c/roulette",
 };
 
 // Normalise input: lowercase + strip ALL whitespace so "c a s i n o" == "casino"
