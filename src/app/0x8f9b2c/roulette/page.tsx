@@ -34,7 +34,7 @@ export default function RoulettePage() {
     setInitialBalanceSet(true);
   };
 
-  const placeBet = (type: string, id: string, amount: number) => {
+  const placeBet = (type: string, id: string | number, amount: number) => {
     if (isSpinning || balance === null || amount > balance) return;
     
     // Check if total bets for this turn exceed 50€
