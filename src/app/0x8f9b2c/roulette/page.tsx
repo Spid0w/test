@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { RouletteWheel } from "@/components/casino/RouletteWheel";
 import { RouletteBoard } from "@/components/casino/RouletteBoard";
-import { Coins, Trophy, History, ArrowLeft, RefreshCw, Eraser, TrendingUp, RotateCcw, Play, Square, ListOrdered } from "lucide-react";
+import { Coins, Trophy, History, ArrowLeft, RefreshCw, Eraser, TrendingUp, RotateCcw, Play, Square, ListOrdered, Lock, Wallet, ShieldAlert, Plus, Minus } from "lucide-react";
 import Link from "next/link";
 
 const REDS = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
@@ -21,6 +21,8 @@ interface SessionRound {
 
 export default function RoulettePage() {
   const [balance, setBalance] = useState<number | null>(null);
+  const [vaultBalance, setVaultBalance] = useState(0);
+  const [stopLimit, setStopLimit] = useState(0);
   const [initialBalanceSet, setInitialBalanceSet] = useState(false);
   const [activeBets, setActiveBets] = useState<Record<string, number>>({});
   const [lastBets, setLastBets] = useState<Record<string, number>>({});
@@ -40,7 +42,6 @@ export default function RoulettePage() {
 
   const workerRef = useRef<Worker | null>(null);
   
-  // Master state ref for background callbacks
   const stateRef = useRef({
     isSpinning: false,
     targetNumber: null as number | null,
@@ -48,6 +49,7 @@ export default function RoulettePage() {
     activeBets: {} as Record<string, number>,
     lastBets: {} as Record<string, number>,
     balance: 0 as number | null,
+    stopLimit: 0,
     initialBalanceSet: false
   });
 
@@ -59,11 +61,11 @@ export default function RoulettePage() {
       activeBets,
       lastBets,
       balance,
+      stopLimit,
       initialBalanceSet
     };
-  }, [isSpinning, targetNumber, isAutoMode, activeBets, lastBets, balance, initialBalanceSet]);
+  }, [isSpinning, targetNumber, isAutoMode, activeBets, lastBets, balance, stopLimit, initialBalanceSet]);
 
-  // REPEAT LAST BETS (No state dependencies to avoid closure issues)
   const repeatLastBetsRaw = useCallback((silent = false) => {
     const s = stateRef.current;
     if (s.isSpinning || s.balance === null || Object.keys(s.lastBets).length === 0) return false;
@@ -79,12 +81,17 @@ export default function RoulettePage() {
     return true;
   }, []);
 
-  // START SPIN (No dependencies)
   const startSpinRaw = useCallback(() => {
     const s = stateRef.current;
     if (s.isSpinning || (Object.keys(s.activeBets).length === 0 && Object.keys(s.lastBets).length === 0)) return;
     
-    // If no bets on board but we have lastBets, try to repeat
+    // SAFETY LIMIT CHECK
+    if (s.isAutoMode && s.balance !== null && s.balance <= s.stopLimit) {
+       setIsAutoMode(false);
+       setMessage(`LIMITE DE ${s.stopLimit}€ ATTEINTE`);
+       return;
+    }
+
     if (Object.keys(s.activeBets).length === 0) {
        const repeated = repeatLastBetsRaw(true);
        if (!repeated) {
@@ -99,11 +106,9 @@ export default function RoulettePage() {
     setIsSpinning(true);
     setIsEraserMode(false);
     setMessage(s.isAutoMode ? "[AUTO] LA BILLE ROULE..." : "LA BILLE ROULE...");
-    
     workerRef.current?.postMessage({ action: "startTimer", delay: 6500 });
   }, [repeatLastBetsRaw]);
 
-  // RESOLVE BETS
   const resolveBetsRaw = useCallback((result: number) => {
     let totalWin = 0;
     const currentBets = stateRef.current.activeBets;
@@ -154,7 +159,6 @@ export default function RoulettePage() {
       ...prev
     ]);
     setIsSpinning(false);
-    // Keep activeBets in lastBets before clearing
     setLastBets({ ...currentBets });
     setActiveBets({});
 
@@ -166,47 +170,44 @@ export default function RoulettePage() {
       setMessage(`${stateRef.current.isAutoMode ? "[AUTO] " : ""}RÉSULTAT : ${result} - LA BANQUE GAGNE`);
     }
 
-    // Trigger next auto round after 2s
     if (stateRef.current.isAutoMode) {
       workerRef.current?.postMessage({ action: "startTimer", delay: 2000 });
     }
-  }, []);
+  }, [maxBalance, minBalance]);
 
-  // Set up Worker
   useEffect(() => {
     const saved = localStorage.getItem("roulette_highscore");
     if (saved) setHighScore(parseFloat(saved));
-
     workerRef.current = new Worker("/roulette-worker.js");
     workerRef.current.onmessage = (e) => {
       if (e.data.action === "timerExpired") {
         const s = stateRef.current;
-        if (s.isSpinning) {
-          resolveBetsRaw(s.targetNumber!);
-        } else if (s.isAutoMode) {
-          startSpinRaw();
-        }
+        if (s.isSpinning) { resolveBetsRaw(s.targetNumber!); } 
+        else if (s.isAutoMode) { startSpinRaw(); }
       }
     };
     return () => workerRef.current?.terminate();
   }, [resolveBetsRaw, startSpinRaw]);
 
-  // TOGGLE AUTO MODE
-  const toggleAutoMode = () => {
-    const nextVal = !isAutoMode;
-    setIsAutoMode(nextVal);
-    
-    if (nextVal) {
-       // Start immediately if possible
-       const s = stateRef.current;
-       if (!s.isSpinning) {
-          // Force a micro-task or brief exit to ensure startSpin sees updated wasAutoMode
-          setTimeout(() => startSpinRaw(), 50);
-       }
-    } else {
-       workerRef.current?.postMessage({ action: "stopTimer" });
-       setMessage("AUTO-MODE ARRÊTÉ");
-    }
+  const handleInitialBalance = (amount: number) => { 
+    setBalance(amount); 
+    setMaxBalance(amount);
+    setMinBalance(amount);
+    setInitialBalanceSet(true); 
+  };
+
+  const moveToVault = (amount: number) => {
+    if (balance === null || balance < amount) { setMessage("PAS ASSEZ D'OR"); return; }
+    setBalance(prev => (prev !== null ? prev - amount : 0));
+    setVaultBalance(prev => prev + amount);
+    setMessage(`${amount}€ SÉCURISÉS AU COFFRE`);
+  };
+
+  const recoverFromVault = () => {
+    if (vaultBalance === 0) return;
+    setBalance(prev => (prev !== null ? prev + vaultBalance : vaultBalance));
+    setVaultBalance(0);
+    setMessage("OR RÉCUPÉRÉ DU COFFRE");
   };
 
   const placeBet = (type: string, id: string | number, amount: number) => {
@@ -245,13 +246,6 @@ export default function RoulettePage() {
     setIsAutoMode(false);
   };
 
-  const handleInitialBalance = (amount: number) => { 
-    setBalance(amount); 
-    setMaxBalance(amount);
-    setMinBalance(amount);
-    setInitialBalanceSet(true); 
-  };
-
   const sessionProfit = sessionHistory.reduce((acc, r) => acc + r.net, 0);
 
   return (
@@ -265,10 +259,29 @@ export default function RoulettePage() {
              <Link href="/0x8f9b2c" className="hover:text-[#d4af37] transition-colors"><ArrowLeft size={24} /></Link>
              <h1 className="text-2xl md:text-5xl font-black tracking-tighter italic text-[#d4af37]">EL POCO <span className="text-white">LOCO</span> CASINO</h1>
           </div>
-          <div className="flex gap-2">
-             <button onClick={() => { setShowHistory(!showHistory); setShowLeaderboard(false); }} className="flex items-center gap-2 bg-[#1b110a] px-3 py-1.5 rounded border border-[#d4af37]/30 hover:bg-[#3f2b1d] text-xs md:text-sm"><History size={16} className="text-[#d4af37]" /><span className="hidden sm:inline">HISTORIQUE</span></button>
-             <button onClick={() => { setShowLeaderboard(!showLeaderboard); setShowHistory(false); }} className="flex items-center gap-2 bg-[#1b110a] px-3 py-1.5 rounded border border-[#d4af37]/30 hover:bg-[#3f2b1d] text-xs md:text-sm"><Trophy size={16} className="text-[#d4af37]" /><span className="hidden sm:inline">CLASSEMENT</span></button>
-             <div className="bg-black/50 border-2 border-[#d4af37] px-4 py-1.5 rounded-full flex items-center gap-2"><Coins size={18} className="text-[#d4af37]" /><span className="text-lg md:text-2xl font-black text-white">{balance !== null ? balance.toFixed(2) : "0.00"}€</span></div>
+          <div className="flex gap-4 items-center">
+             
+             {/* COFFRE FORT UI */}
+             <div className="hidden sm:flex items-center gap-2 bg-[#1b110a] border border-[#3f2b1d] p-1.5 rounded-lg">
+                <div className="flex flex-col items-center">
+                   <div className="text-[8px] uppercase text-[#8b4513] font-bold px-2">Coffre-Fort</div>
+                   <div className="flex items-center gap-2 text-white font-black px-2">
+                      <Lock size={12} className="text-[#d4af37]" />
+                      {vaultBalance.toFixed(2)}€
+                   </div>
+                </div>
+                <div className="flex gap-1">
+                   <button onClick={() => moveToVault(5)} className="bg-[#3f2b1d] hover:bg-[#d4af37] hover:text-black w-8 h-8 rounded flex items-center justify-center text-[10px] font-bold transition-colors">+5</button>
+                   <button onClick={() => moveToVault(10)} className="bg-[#3f2b1d] hover:bg-[#d4af37] hover:text-black w-8 h-8 rounded flex items-center justify-center text-[10px] font-bold transition-colors">+10</button>
+                   <button onClick={recoverFromVault} className="bg-zinc-900 border border-[#3f2b1d] hover:border-[#d4af37] w-8 h-8 rounded flex items-center justify-center transition-colors"><RefreshCw size={12} /></button>
+                </div>
+             </div>
+
+             <div className="flex gap-2">
+                <button onClick={() => { setShowHistory(!showHistory); setShowLeaderboard(false); }} className="flex items-center gap-2 bg-[#1b110a] px-3 py-1.5 rounded border border-[#d4af37]/30 hover:bg-[#3f2b1d] text-xs md:text-sm"><History size={16} className="text-[#d4af37]" /><span className="hidden sm:inline">HISTORIQUE</span></button>
+                <button onClick={() => { setShowLeaderboard(!showLeaderboard); setShowHistory(false); }} className="flex items-center gap-2 bg-[#1b110a] px-3 py-1.5 rounded border border-[#d4af37]/30 hover:bg-[#3f2b1d] text-xs md:text-sm"><Trophy size={16} className="text-[#d4af37]" /><span className="hidden sm:inline">CLASSEMENT</span></button>
+                <div className="bg-black/50 border-2 border-[#d4af37] px-4 py-1.5 rounded-full flex items-center gap-2"><Coins size={18} className="text-[#d4af37]" /><span className="text-lg md:text-2xl font-black text-white">{balance !== null ? balance.toFixed(2) : "0.00"}€</span></div>
+             </div>
           </div>
         </div>
 
@@ -292,8 +305,27 @@ export default function RoulettePage() {
                </div>
             </div>
 
-            <div className="flex w-full gap-3">
-               <button onClick={toggleAutoMode} className={`flex-1 py-5 rounded-xl border-4 font-black text-xl uppercase transition-all flex items-center justify-center gap-3 ${isAutoMode ? "bg-red-950 border-red-500 text-red-500 animate-pulse" : "bg-[#1b110a] border-[#3f2b1d] text-[#d4af37] hover:border-[#d4af37]"}`}>{isAutoMode ? <Square fill="currentColor" size={20} /> : <Play fill="currentColor" size={20} />}{isAutoMode ? "Stop Auto" : "Auto"}</button>
+            <div className="flex w-full gap-3 flex-col sm:flex-row">
+               <div className="flex-1 flex flex-col gap-2">
+                  <button onClick={() => { 
+                    const nextVal = !isAutoMode;
+                    setIsAutoMode(nextVal);
+                    if (nextVal) setTimeout(() => startSpinRaw(), 50);
+                    else { workerRef.current?.postMessage({ action: "stopTimer" }); setMessage("AUTO-MODE ARRÊTÉ"); }
+                  }} className={`w-full py-5 rounded-xl border-4 font-black text-xl uppercase transition-all flex items-center justify-center gap-3 ${isAutoMode ? "bg-red-950 border-red-500 text-red-500 animate-pulse" : "bg-[#1b110a] border-[#3f2b1d] text-[#d4af37] hover:border-[#d4af37]"}`}>
+                      {isAutoMode ? <Square fill="currentColor" size={20} /> : <Play fill="currentColor" size={20} />}
+                      {isAutoMode ? "Stop Auto" : "Auto"}
+                  </button>
+                  <div className="flex items-center justify-center gap-3 bg-black/40 rounded-lg p-2 border border-[#3f2b1d]">
+                     <ShieldAlert size={14} className="text-[#8b4513]" />
+                     <span className="text-[10px] uppercase font-bold text-[#8b4513]">Arrêt à :</span>
+                     <div className="flex items-center gap-2">
+                        <button onClick={() => setStopLimit(Math.max(0, stopLimit - 5))} className="hover:text-white"><Minus size={14}/></button>
+                        <span className="text-sm font-black text-white w-8 text-center">{stopLimit}€</span>
+                        <button onClick={() => setStopLimit(stopLimit + 5)} className="hover:text-white"><Plus size={14}/></button>
+                     </div>
+                  </div>
+               </div>
                <button onClick={startSpinRaw} disabled={isSpinning || (Object.keys(activeBets).length === 0 && Object.keys(lastBets).length === 0)} className="flex-[2] py-5 bg-gradient-to-tr from-[#8b4513] to-[#d4af37] text-black font-black text-2xl rounded-xl shadow-[0_8px_0_#3f2b1d] active:shadow-none active:translate-y-2 transition-all disabled:opacity-50 disabled:grayscale uppercase">Lancer la bille</button>
             </div>
           </div>
@@ -305,6 +337,19 @@ export default function RoulettePage() {
                <button onClick={doubleCurrentBets} disabled={isSpinning || Object.keys(activeBets).length === 0} className="flex items-center justify-center gap-2 py-3 rounded-lg border-2 bg-zinc-900 border-[#3f2b1d] text-[#e5c299] font-black text-xs uppercase hover:border-[#d4af37] hover:text-[#d4af37] disabled:opacity-50"><TrendingUp size={16} /> Doubler (x2)</button>
                <button onClick={() => repeatLastBetsRaw()} disabled={isSpinning || Object.keys(lastBets).length === 0} className="flex items-center justify-center gap-2 py-3 rounded-lg border-2 bg-zinc-900 border-[#3f2b1d] text-[#e5c299] font-black text-xs uppercase hover:border-[#d4af37] hover:text-[#d4af37] disabled:opacity-50"><RotateCcw size={16} /> Répéter</button>
             </div>
+            
+            {/* MOBILE COFFRE FORT */}
+            <div className="sm:hidden flex items-center justify-between bg-black/40 p-4 rounded-xl border border-[#3f2b1d]">
+               <div className="flex items-center gap-2">
+                  <Lock size={16} className="text-[#d4af37]" />
+                  <div className="text-xl font-black text-white">{vaultBalance.toFixed(2)}€</div>
+               </div>
+               <div className="flex gap-2">
+                  <button onClick={() => moveToVault(5)} className="px-4 py-2 bg-[#3f2b1d] rounded font-bold">+5€</button>
+                  <button onClick={recoverFromVault} className="px-4 py-2 bg-zinc-800 rounded font-bold"><RefreshCw size={16}/></button>
+               </div>
+            </div>
+
             <div className="bg-black/40 p-5 rounded-xl border border-[#3f2b1d]"><div className="flex justify-between items-center mb-4"><span className="text-[10px] uppercase tracking-widest text-[#d4af37]">Choisir vos jetons</span><button onClick={resetCurrentBets} className="flex items-center gap-2 text-[10px] hover:text-white transition-colors"><RefreshCw size={12} /> ANNULER TOUT</button></div><div className="flex justify-between gap-1.5">{CHIP_VALUES.map((val) => (<button key={val} onClick={() => { setCurrentChip(val); setIsEraserMode(false); }} className={`relative w-12 h-12 md:w-16 md:h-16 rounded-full border-4 border-dashed flex items-center justify-center font-black transition-all text-xs md:text-sm ${currentChip === val && !isEraserMode ? "scale-110 border-white shadow-[0_0_15px_white] z-10" : "border-[#3f2b1d] opacity-60 hover:opacity-100 hover:scale-105"} ${val < 1 ? "bg-zinc-500 text-black" : val < 10 ? "bg-blue-800 text-white" : val < 20 ? "bg-red-800 text-white" : "bg-black text-[#d4af37] border-[#d4af37]"}`}>{val}€</button>))}</div></div>
             <div className="flex items-center gap-3 text-xs text-[#8b4513] italic px-2"><History size={14} /> Mise totale ce tour : {Object.values(activeBets).reduce((a, b) => a + b, 0).toFixed(2)}€ / 50€</div>
           </div>
