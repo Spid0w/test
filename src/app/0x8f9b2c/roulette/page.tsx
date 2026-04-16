@@ -174,18 +174,32 @@ export default function RoulettePage() {
     });
 
     const net = totalWin - totalBet;
-    setBalance((prev) => (prev !== null ? prev + totalWin : 0));
+    let finalWin = totalWin;
+    let isPartage = false;
+
+    // RÈGLE DU PARTAGE (Western Style): Si 0, on récupère 50% des mises perdantes
+    if (result === 0 && totalWin < (totalBet * 35)) { // Si on n'a pas gagné le plein sur le 0 (x36)
+      const refund = (totalBet - (currentBets["0"] || 0)) * 0.5;
+      if (refund > 0) {
+        finalWin += refund;
+        isPartage = true;
+      }
+    }
+
+    setBalance((prev) => (prev !== null ? prev + finalWin : 0));
     setHistory((prev) => [result, ...prev].slice(0, 10));
     setSessionHistory(prev => [
-      { id: prev.length + 1, result, color: result === 0 ? "VERT" : isResultRed ? "ROUGE" : "NOIR", totalBet, totalWin, net },
+      { id: prev.length + 1, result, color: result === 0 ? "VERT" : isResultRed ? "ROUGE" : "NOIR", totalBet, totalWin: finalWin, net: finalWin - totalBet },
       ...prev
     ]);
     setIsSpinning(false);
     setActiveBets({});
 
     if (totalWin > 0) {
-      setMessage(`${isAutoModeRef.current ? "[AUTO] " : ""}GAGNÉ : ${result} (${totalWin.toFixed(2)}€)`);
-      if (totalWin > highScore) { setHighScore(totalWin); localStorage.setItem("roulette_highscore", totalWin.toString()); }
+      setMessage(`${isAutoModeRef.current ? "[AUTO] " : ""}GAGNÉ : ${result} (${finalWin.toFixed(2)}€)`);
+      if (finalWin > highScore) { setHighScore(finalWin); localStorage.setItem("roulette_highscore", finalWin.toString()); }
+    } else if (isPartage) {
+      setMessage(`${isAutoModeRef.current ? "[AUTO] " : ""}ZÉRO ! PARTAGE : ${(finalWin).toFixed(2)}€ RENDUS`);
     } else {
       setMessage(`${isAutoModeRef.current ? "[AUTO] " : ""}RÉSULTAT : ${result} - LA BANQUE GAGNE`);
     }
