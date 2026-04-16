@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { RouletteWheel } from "@/components/casino/RouletteWheel";
 import { RouletteBoard } from "@/components/casino/RouletteBoard";
-import { Coins, Trophy, History, ArrowLeft, RefreshCw } from "lucide-react";
+import { Coins, Trophy, History, ArrowLeft, RefreshCw, Eraser, TrendingUp, RotateCcw } from "lucide-react";
 import Link from "next/link";
 
 const REDS = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
@@ -14,6 +14,8 @@ export default function RoulettePage() {
   const [balance, setBalance] = useState<number | null>(null);
   const [initialBalanceSet, setInitialBalanceSet] = useState(false);
   const [activeBets, setActiveBets] = useState<Record<string, number>>({});
+  const [lastBets, setLastBets] = useState<Record<string, number>>({});
+  const [isEraserMode, setIsEraserMode] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
   const [targetNumber, setTargetNumber] = useState<number | null>(null);
   const [message, setMessage] = useState<string>("BIENVENUE AU SALOON");
@@ -34,8 +36,26 @@ export default function RoulettePage() {
   };
 
   const placeBet = (type: string, id: string | number, amount: number) => {
-    if (isSpinning || balance === null || amount > balance) return;
+    if (isSpinning || balance === null) return;
     
+    const betId = id.toString();
+
+    // MODE GOMME
+    if (isEraserMode) {
+      const existingAmount = activeBets[betId] || 0;
+      if (existingAmount > 0) {
+        setBalance((prev) => (prev !== null ? prev + existingAmount : prev));
+        setActiveBets((prev) => {
+           const next = { ...prev };
+           delete next[betId];
+           return next;
+        });
+        setMessage("MISE EFFACÉE");
+      }
+      return;
+    }
+
+    // MODE NORMAL
     // Check if total bets for this turn exceed 50€
     const totalCurrentBets = Object.values(activeBets).reduce((a, b) => a + b, 0);
     if (totalCurrentBets + amount > 50) {
@@ -43,18 +63,68 @@ export default function RoulettePage() {
       return;
     }
 
+    if (amount > balance) {
+      setMessage("BALANCE INSUFFISANTE");
+      return;
+    }
+
     setActiveBets((prev) => ({
       ...prev,
-      [id.toString()]: (prev[id.toString()] || 0) + amount,
+      [betId]: (prev[betId] || 0) + amount,
     }));
     setBalance((prev) => (prev !== null ? prev - amount : 0));
   };
 
+  const doubleCurrentBets = () => {
+    if (isSpinning || balance === null || Object.keys(activeBets).length === 0) return;
+    
+    const totalCurrentBets = Object.values(activeBets).reduce((a, b) => a + b, 0);
+    if (totalCurrentBets > balance) {
+      setMessage("BALANCE INSUFFISANTE POUR DOUBLER");
+      return;
+    }
+
+    if (totalCurrentBets * 2 > 50) {
+      setMessage("LIMITE DE 50€ DÉPASSÉE");
+      return;
+    }
+
+    const nextBets = { ...activeBets };
+    Object.keys(nextBets).forEach(id => {
+       nextBets[id] *= 2;
+    });
+
+    setActiveBets(nextBets);
+    setBalance(prev => (prev !== null ? prev - totalCurrentBets : prev));
+    setMessage("MISES DOUBLÉES !");
+  };
+
+  const repeatLastBets = () => {
+    if (isSpinning || balance === null || Object.keys(lastBets).length === 0) return;
+    
+    const totalToRepeat = Object.values(lastBets).reduce((a, b) => a + b, 0);
+    if (totalToRepeat > balance) {
+      setMessage("BALANCE INSUFFISANTE POUR RÉPÉTER");
+      return;
+    }
+
+    // First refund current bets if any
+    const totalCurrentBets = Object.values(activeBets).reduce((a, b) => a + b, 0);
+    setBalance(prev => (prev !== null ? prev + totalCurrentBets - totalToRepeat : prev));
+    setActiveBets({ ...lastBets });
+    setMessage("DERNIÈRE MISE RESTAURÉE");
+  };
+
   const startSpin = () => {
     if (isSpinning || Object.keys(activeBets).length === 0) return;
+    
+    // Save current bets before clearing for the next round
+    setLastBets({ ...activeBets });
+    
     const result = Math.floor(Math.random() * 37);
     setTargetNumber(result);
     setIsSpinning(true);
+    setIsEraserMode(false); // Turn off eraser on spin
     setMessage("LES JEUX SONT FAITS...");
   };
 
@@ -71,12 +141,12 @@ export default function RoulettePage() {
       // 2. Splits (Duo - "split_num1_num2")
       else if (betId.startsWith("split_")) {
         const nums = betId.split("_").slice(1).map(Number);
-        if (nums.includes(result)) totalWin += amount * 18; // 17:1 + stake
+        if (nums.includes(result)) totalWin += amount * 18;
       }
       // 3. Corners (Carré - "corner_n1_n2_n3_n4")
       else if (betId.startsWith("corner_")) {
         const nums = betId.split("_").slice(1).map(Number);
-        if (nums.includes(result)) totalWin += amount * 9; // 8:1 + stake
+        if (nums.includes(result)) totalWin += amount * 9;
       }
       // 4. Dozaines
       else if (betId === "doz1" && result >= 1 && result <= 12) totalWin += amount * 3;
@@ -111,10 +181,10 @@ export default function RoulettePage() {
     }
   };
 
-  const resetBets = () => {
+  const resetCurrentBets = () => {
     if (isSpinning) return;
     const totalCurrentBets = Object.values(activeBets).reduce((a, b) => a + b, 0);
-    setBalance((prev) => (prev !== null ? prev + totalCurrentBets : 0));
+    setBalance((prev) => (prev !== null ? prev + totalCurrentBets : prev));
     setActiveBets({});
     setMessage("MISES RÉINITIALISÉES");
   };
@@ -154,11 +224,11 @@ export default function RoulettePage() {
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-[1fr_1.2fr] gap-8 items-start">
+        <div className="grid lg:grid-cols-[1fr_1.3fr] gap-8 items-start">
           
           {/* Section Roue */}
           <div className="flex flex-col items-center gap-6">
-            <div className="w-full relative py-4">
+            <div className="w-full relative py-2">
                <RouletteWheel 
                  isSpinning={isSpinning} 
                  targetNumber={targetNumber} 
@@ -166,7 +236,7 @@ export default function RoulettePage() {
                />
                
                {/* Historique */}
-               <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex gap-1.5">
+               <div className="absolute bottom-[-10px] left-1/2 -translate-x-1/2 flex gap-1.5">
                  {history.map((num, i) => (
                    <div 
                      key={i} 
@@ -220,18 +290,45 @@ export default function RoulettePage() {
           </div>
 
           {/* Section Mise */}
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-4">
             <RouletteBoard 
               onPlaceBet={placeBet} 
               activeBets={activeBets} 
-              currentChip={currentChip} 
+              currentChip={currentChip}
+              isEraserMode={isEraserMode}
             />
+
+            {/* Outils de mise */}
+            <div className="grid grid-cols-3 gap-2">
+               <button 
+                 onClick={() => setIsEraserMode(!isEraserMode)}
+                 className={`flex items-center justify-center gap-2 py-3 rounded-lg border-2 transition-all font-black text-xs uppercase
+                    ${isEraserMode ? "bg-red-900 border-red-500 text-white shadow-[0_0_15px_rgba(255,0,0,0.3)] animate-pulse" : "bg-zinc-900 border-[#3f2b1d] text-[#8b4513] hover:border-[#d4af37]"}
+                 `}
+               >
+                  <Eraser size={16} /> Gomme
+               </button>
+               <button 
+                 onClick={doubleCurrentBets}
+                 disabled={isSpinning || Object.keys(activeBets).length === 0}
+                 className="flex items-center justify-center gap-2 py-3 rounded-lg border-2 bg-zinc-900 border-[#3f2b1d] text-[#e5c299] font-black text-xs uppercase hover:border-[#d4af37] hover:text-[#d4af37] disabled:opacity-30"
+               >
+                  <TrendingUp size={16} /> Doubler (x2)
+               </button>
+               <button 
+                 onClick={repeatLastBets}
+                 disabled={isSpinning || Object.keys(lastBets).length === 0}
+                 className="flex items-center justify-center gap-2 py-3 rounded-lg border-2 bg-zinc-900 border-[#3f2b1d] text-[#e5c299] font-black text-xs uppercase hover:border-[#d4af37] hover:text-[#d4af37] disabled:opacity-30"
+               >
+                  <RotateCcw size={16} /> Répéter
+               </button>
+            </div>
 
             <div className="bg-black/40 p-5 rounded-xl border border-[#3f2b1d]">
                <div className="flex justify-between items-center mb-4">
                   <span className="text-[10px] uppercase tracking-widest text-[#d4af37]">Choisir vos jetons</span>
                   <button 
-                    onClick={resetBets}
+                    onClick={resetCurrentBets}
                     className="flex items-center gap-2 text-[10px] hover:text-white transition-colors"
                   >
                     <RefreshCw size={12} /> ANNULER TOUT
@@ -241,10 +338,10 @@ export default function RoulettePage() {
                  {CHIP_VALUES.map((val) => (
                    <button
                      key={val}
-                     onClick={() => setCurrentChip(val)}
+                     onClick={() => { setCurrentChip(val); setIsEraserMode(false); }}
                      className={`
                        relative w-12 h-12 md:w-16 md:h-16 rounded-full border-4 border-dashed flex items-center justify-center font-black transition-all text-xs md:text-sm
-                       ${currentChip === val ? "scale-110 border-white shadow-[0_0_15px_white] z-10" : "border-[#3f2b1d] opacity-60 hover:opacity-100 hover:scale-105"}
+                       ${currentChip === val && !isEraserMode ? "scale-110 border-white shadow-[0_0_15px_white] z-10" : "border-[#3f2b1d] opacity-60 hover:opacity-100 hover:scale-105"}
                        ${val < 1 ? "bg-zinc-500 text-black" : val < 10 ? "bg-blue-800 text-white" : val < 20 ? "bg-red-800 text-white" : "bg-black text-[#d4af37] border-[#d4af37]"}
                      `}
                    >
@@ -254,7 +351,7 @@ export default function RoulettePage() {
                </div>
             </div>
             
-            <div className="flex items-center gap-3 text-xs text-[#8b4513] italic">
+            <div className="flex items-center gap-3 text-xs text-[#8b4513] italic px-2">
                <History size={14} />
                Mise totale ce tour : {Object.values(activeBets).reduce((a, b) => a + b, 0).toFixed(2)}€ / 50€
             </div>
