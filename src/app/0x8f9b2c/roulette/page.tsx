@@ -171,18 +171,31 @@ export default function RoulettePage() {
                </div>
             </div>
 
-            <div className="w-full bg-[#1b110a] border-4 border-[#3f2b1d] p-4 rounded-lg text-center shadow-inner">
+            <div className="w-full bg-[#1b110a] border-4 border-[#3f2b1d] p-4 rounded-lg text-center shadow-inner relative overflow-hidden">
+               <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] pointer-events-none" />
                <div className="text-[#d4af37] text-[10px] uppercase tracking-[0.3em] mb-1 font-mono">Terminal de Jeu</div>
-               <div className="text-xl md:text-2xl font-bold uppercase tracking-widest min-h-[1.5em] flex items-center justify-center">
+               
+               <div className="flex flex-col items-center justify-center min-h-[5em]">
                   <AnimatePresence mode="wait">
-                    <motion.span
+                    <motion.div
                       key={message}
-                      initial={{ opacity: 0, scale: 0.9 }}
+                      initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 1.1 }}
+                      exit={{ opacity: 0, scale: 1.2 }}
+                      className="flex flex-col items-center gap-2"
                     >
-                      {message}
-                    </motion.span>
+                      {targetNumber !== null && !isSpinning && (
+                        <div className={`
+                          w-12 h-12 rounded-full flex items-center justify-center text-xl font-black border-2 border-white/20 shadow-lg
+                          ${targetNumber === 0 ? "bg-green-700" : REDS.includes(targetNumber) ? "bg-red-800" : "bg-black"}
+                        `}>
+                          {targetNumber}
+                        </div>
+                      )}
+                      <span className="text-xl md:text-2xl font-bold uppercase tracking-widest text-[#e5c299]">
+                        {message}
+                      </span>
+                    </motion.div>
                   </AnimatePresence>
                </div>
             </div>
