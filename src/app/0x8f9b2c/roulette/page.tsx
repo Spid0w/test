@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { RouletteWheel } from "@/components/casino/RouletteWheel";
 import { RouletteBoard } from "@/components/casino/RouletteBoard";
-import { Coins, Trophy, History, ArrowLeft, RefreshCw, Eraser, TrendingUp, RotateCcw, Play, Square, ListOrdered, Lock, Wallet, ShieldAlert, Plus, Minus, Power, PowerOff } from "lucide-react";
+import { Coins, Trophy, History, ArrowLeft, RefreshCw, Eraser, TrendingUp, RotateCcw, Play, Square, ListOrdered, Lock, Wallet, ShieldAlert, Plus, Minus, Power, PowerOff, Flame, Snowflake, BarChart3 } from "lucide-react";
 import Link from "next/link";
 
 const REDS = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
@@ -45,7 +45,6 @@ export default function RoulettePage() {
   const [highScore, setHighScore] = useState(0);
   const [maxBalance, setMaxBalance] = useState<number>(0);
   const [minBalance, setMinBalance] = useState<number>(0);
-  const [showStats, setShowStats] = useState(false);
   const [numberFrequency, setNumberFrequency] = useState<Record<number, number>>(() => {
     const init: Record<number, number> = {};
     for (let i = 0; i <= 36; i++) init[i] = 0;
@@ -61,7 +60,6 @@ export default function RoulettePage() {
     activeBets: {} as Record<string, number>,
     lastBets: {} as Record<string, number>,
     balance: 0 as number | null,
-    // Refined safety
     stopLossEnabled: false,
     stopLossValue: 0,
     stopWinEnabled: false,
@@ -104,7 +102,6 @@ export default function RoulettePage() {
     const s = stateRef.current;
     if (s.isSpinning || (Object.keys(s.activeBets).length === 0 && Object.keys(s.lastBets).length === 0)) return;
     
-    // Check if we can afford the bets (if board empty)
     if (Object.keys(s.activeBets).length === 0) {
        const repeated = repeatLastBetsRaw(true);
        if (!repeated) {
@@ -162,9 +159,6 @@ export default function RoulettePage() {
 
     const nextBalance = (stateRef.current.balance || 0) + finalWin;
     setBalance(nextBalance);
-    if (nextBalance > maxBalance) setMaxBalance(nextBalance);
-    if (nextBalance < minBalance) setMinBalance(nextBalance);
-    
     setHistory((prev) => [result, ...prev].slice(0, 10));
     setSessionHistory(prev => [
       { id: prev.length + 1, result, color: result === 0 ? "VERT" : isResultRed ? "ROUGE" : "NOIR", totalBet, totalWin: finalWin, net: finalWin - totalBet },
@@ -174,7 +168,6 @@ export default function RoulettePage() {
     setLastBets({ ...currentBets });
     setActiveBets({});
 
-    // UPDATE FREQUENCY
     setNumberFrequency(prev => ({ ...prev, [result]: (prev[result] || 0) + 1 }));
 
     if (finalWin > 0) {
@@ -185,11 +178,9 @@ export default function RoulettePage() {
       setMessage(`${stateRef.current.isAutoMode ? "[AUTO] " : ""}RÉSULTAT : ${result} - LA BANQUE GAGNE`);
     }
 
-    // UPDATE RECORDS USING FUNCTIONAL UPDATES
     setMaxBalance(prev => nextBalance > prev ? nextBalance : prev);
     setMinBalance(prev => nextBalance < prev ? nextBalance : prev);
 
-    // SAFETY CHECKS (MOVE TO END OF ROUND)
     if (stateRef.current.isAutoMode) {
        const s = stateRef.current;
        if (s.stopLossEnabled && nextBalance <= s.stopLossValue) {
@@ -280,12 +271,24 @@ export default function RoulettePage() {
 
   const sessionProfit = sessionHistory.reduce((acc, r) => acc + r.net, 0);
 
+  // Statistics Calculation
+  const statsData = (() => {
+    const total = Object.values(numberFrequency).reduce((a, b) => a + b, 0) || 1;
+    const sorted = Object.entries(numberFrequency).sort(([,a], [,b]) => b - a);
+    const hot = sorted.slice(0, 5);
+    const cold = [...sorted].sort(([,a], [,b]) => a - b).slice(0, 5);
+    const red = Object.entries(numberFrequency).filter(([n]) => REDS.includes(Number(n))).reduce((a, [,b]) => a + b, 0);
+    const green = numberFrequency[0] || 0;
+    const black = total - red - green;
+    return { total, hot, cold, red, black, green };
+  })();
+
   return (
-    <main className="min-h-screen bg-[#0a0502] text-[#e5c299] font-serif p-4 md:p-8 relative overflow-hidden">
+    <main className="min-h-screen bg-[#0a0502] text-[#e5c299] font-serif p-4 md:p-6 lg:p-8 relative overflow-hidden">
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/dust.png')]" />
       <div className="fixed inset-0 pointer-events-none z-50 crt opacity-20" />
 
-      <div className="max-w-6xl mx-auto relative z-10">
+      <div className="max-w-[1600px] mx-auto relative z-10">
         <div className="flex justify-between items-center mb-6 border-b-2 border-[#3f2b1d] pb-4">
           <div className="flex items-center gap-4">
              <Link href="/0x8f9b2c" className="hover:text-[#d4af37] transition-colors"><ArrowLeft size={24} /></Link>
@@ -294,208 +297,237 @@ export default function RoulettePage() {
           <div className="flex gap-4 items-center">
              <div className="hidden sm:flex items-center gap-2 bg-[#1b110a] border border-[#3f2b1d] p-1.5 rounded-lg">
                 <div className="flex flex-col items-center">
-                   <div className="text-[8px] uppercase text-[#8b4513] font-bold px-2">Coffre-Fort</div>
+                   <div className="text-[8px] uppercase text-[#8b4513] font-bold px-2 tracking-widest">Coffre-Fort</div>
                    <div className="flex items-center gap-2 text-white font-black px-2">
                       <Lock size={12} className="text-[#d4af37]" />
                       {vaultBalance.toFixed(2)}€
                    </div>
                 </div>
                 <div className="flex gap-1">
-                   <button onClick={() => moveToVault(5)} className="bg-[#3f2b1d] hover:bg-[#d4af37] hover:text-black w-8 h-8 rounded flex items-center justify-center text-[10px] font-bold transition-colors">+5</button>
-                   <button onClick={() => moveToVault(10)} className="bg-[#3f2b1d] hover:bg-[#d4af37] hover:text-black w-8 h-8 rounded flex items-center justify-center text-[10px] font-bold transition-colors">+10</button>
-                   <button onClick={recoverFromVault} className="bg-zinc-900 border border-[#3f2b1d] hover:border-[#d4af37] w-8 h-8 rounded flex items-center justify-center transition-colors"><RefreshCw size={12} /></button>
+                   <button onClick={() => moveToVault(5)} className="bg-[#3f2b1d] hover:bg-[#d4af37] hover:text-black w-8 h-8 rounded flex items-center justify-center text-[10px] font-bold transition-colors shadow-sm">+5</button>
+                   <button onClick={() => moveToVault(10)} className="bg-[#3f2b1d] hover:bg-[#d4af37] hover:text-black w-8 h-8 rounded flex items-center justify-center text-[10px] font-bold transition-colors shadow-sm">+10</button>
+                   <button onClick={recoverFromVault} className="bg-zinc-900 border border-[#3f2b1d] hover:border-[#d4af37] w-8 h-8 rounded flex items-center justify-center transition-colors shadow-sm"><RefreshCw size={12} /></button>
                 </div>
              </div>
              <div className="flex gap-2">
-                <button onClick={() => { setShowStats(!showStats); setShowHistory(false); setShowLeaderboard(false); }} className="flex items-center gap-2 bg-[#1b110a] px-3 py-1.5 rounded border border-[#d4af37]/30 hover:bg-[#3f2b1d] text-xs md:text-sm"><TrendingUp size={16} className="text-[#d4af37]" /><span className="hidden sm:inline">STATS</span></button>
-                <button onClick={() => { setShowHistory(!showHistory); setShowLeaderboard(false); setShowStats(false); }} className="flex items-center gap-2 bg-[#1b110a] px-3 py-1.5 rounded border border-[#d4af37]/30 hover:bg-[#3f2b1d] text-xs md:text-sm"><History size={16} className="text-[#d4af37]" /><span className="hidden sm:inline">HISTORIQUE</span></button>
-                <button onClick={() => { setShowLeaderboard(!showLeaderboard); setShowHistory(false); setShowStats(false); }} className="flex items-center gap-2 bg-[#1b110a] px-3 py-1.5 rounded border border-[#d4af37]/30 hover:bg-[#3f2b1d] text-xs md:text-sm"><Trophy size={16} className="text-[#d4af37]" /><span className="hidden sm:inline">CLASSEMENT</span></button>
-                <div className="bg-black/50 border-2 border-[#d4af37] px-4 py-1.5 rounded-full flex items-center gap-2"><Coins size={18} className="text-[#d4af37]" /><span className="text-lg md:text-2xl font-black text-white">{balance !== null ? balance.toFixed(2) : "0.00"}€</span></div>
+                <button onClick={() => { setShowHistory(!showHistory); setShowLeaderboard(false); }} className="flex items-center gap-2 bg-[#1b110a] px-3 py-1.5 rounded border border-[#d4af37]/30 hover:bg-[#3f2b1d] text-xs md:text-sm shadow-md"><History size={16} className="text-[#d4af37]" /><span className="hidden sm:inline italic">LOGS</span></button>
+                <button onClick={() => { setShowLeaderboard(!showLeaderboard); setShowHistory(false); }} className="flex items-center gap-2 bg-[#1b110a] px-3 py-1.5 rounded border border-[#d4af37]/30 hover:bg-[#3f2b1d] text-xs md:text-sm shadow-md"><Trophy size={16} className="text-[#d4af37]" /><span className="hidden sm:inline italic">RECORDS</span></button>
+                <div className="bg-black/80 border-2 border-[#d4af37] px-4 py-1.5 rounded-full flex items-center gap-2 shadow-[0_0_20px_rgba(212,175,55,0.2)]"><Coins size={18} className="text-[#d4af37]" /><span className="text-lg md:text-2xl font-black text-white">{balance !== null ? balance.toFixed(2) : "0.00"}€</span></div>
              </div>
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-[1fr_1.3fr] gap-8 items-start">
+        <div className="grid xl:grid-cols-[1fr_1.3fr_0.6fr] gap-8 items-start">
+          {/* LEFT COLUMN: WHEEL & TERMINAL */}
           <div className="flex flex-col items-center gap-6">
-            <div className="w-full relative py-2">
+            <div className="w-full relative py-2 mb-4">
                <RouletteWheel isSpinning={isSpinning} targetNumber={targetNumber} onSpinEnd={() => {}} />
-               <div className="absolute bottom-[-10px] left-1/2 -translate-x-1/2 flex gap-1.5">{history.map((num, i) => (<div key={i} className={`w-7 h-7 rounded-full border border-gold/40 flex items-center justify-center text-[10px] font-bold shadow-xl ${num === 0 ? "bg-green-700" : REDS.includes(num) ? "bg-red-800" : "bg-zinc-900"}`} style={{ opacity: 1 - i * 0.1 }}>{num}</div>))}</div>
+               <div className="absolute bottom-[-15px] left-1/2 -translate-x-1/2 flex gap-1.5 bg-[#1b110a]/80 p-2 rounded-full border border-[#d4af37]/20 backdrop-blur-sm shadow-2xl">{history.map((num, i) => (<div key={i} className={`w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-[10px] font-black shadow-lg transition-transform hover:scale-110 ${num === 0 ? "bg-green-700" : REDS.includes(num) ? "bg-red-800" : "bg-zinc-900"}`} style={{ opacity: 1 - i * 0.08 }}>{num}</div>))}</div>
             </div>
 
-            <div className="w-full bg-[#1b110a] border-4 border-[#3f2b1d] p-4 rounded-lg text-center shadow-inner relative overflow-hidden">
-               <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] pointer-events-none" />
-               <div className="text-[#d4af37] text-[10px] uppercase tracking-[0.3em] mb-1 font-mono">Terminal de Jeu</div>
-               <div className="flex flex-col items-center justify-center min-h-[5em]">
+            <div className="w-full bg-[#1b110a] border-4 border-[#3f2b1d] p-5 rounded-xl text-center shadow-[inset_0_0_50px_rgba(0,0,0,0.8)] relative overflow-hidden">
+               <div className="absolute inset-0 opacity-5 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] pointer-events-none" />
+               <div className="text-[#d4af37] text-[10px] uppercase tracking-[0.4em] mb-2 font-black italic opacity-60">Terminal de Jeu</div>
+               <div className="flex flex-col items-center justify-center min-h-[6em]">
                   <AnimatePresence mode="wait">
-                    <motion.div key={message} initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.2 }} className="flex flex-col items-center gap-2">
-                      {targetNumber !== null && !isSpinning && (<div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl font-black border-2 border-white/20 shadow-lg ${targetNumber === 0 ? "bg-green-700" : REDS.includes(targetNumber) ? "bg-red-800" : "bg-black"}`}>{targetNumber}</div>)}
-                      <span className="text-xl md:text-2xl font-bold uppercase tracking-widest text-[#e5c299] font-mono">{message}</span>
+                    <motion.div key={message} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.1 }} className="flex flex-col items-center gap-3">
+                      {targetNumber !== null && !isSpinning && (<motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl font-black border-4 border-white/20 shadow-[0_0_30px_rgba(255,255,255,0.1)] ${targetNumber === 0 ? "bg-green-700" : REDS.includes(targetNumber) ? "bg-red-800" : "bg-black"}`}>{targetNumber}</motion.div>)}
+                      <span className="text-xl md:text-2xl font-black uppercase tracking-widest text-[#e5c299] font-mono italic text-shadow-glow">{message}</span>
                     </motion.div>
                   </AnimatePresence>
                </div>
             </div>
 
-            <div className="flex w-full gap-3 flex-col sm:flex-row">
+            <div className="flex w-full gap-4 flex-col sm:flex-row">
                <div className="flex-1 flex flex-col gap-2">
                   <button onClick={() => { 
                     const nextVal = !isAutoMode;
                     setIsAutoMode(nextVal);
                     if (nextVal) setTimeout(() => startSpinRaw(), 50);
                     else { workerRef.current?.postMessage({ action: "stopTimer" }); setMessage("AUTO-MODE ARRÊTÉ"); }
-                  }} className={`w-full py-5 rounded-xl border-4 font-black text-xl uppercase transition-all flex items-center justify-center gap-3 ${isAutoMode ? "bg-red-950 border-red-500 text-red-500 animate-pulse" : "bg-[#1b110a] border-[#3f2b1d] text-[#d4af37] hover:border-[#d4af37]"}`}>
+                  }} className={`w-full py-5 rounded-xl border-4 font-black text-xl uppercase transition-all flex items-center justify-center gap-3 shadow-xl ${isAutoMode ? "bg-red-950 border-red-500 text-red-500 shadow-[0_0_15px_rgba(255,0,0,0.2)] animate-pulse" : "bg-gradient-to-b from-[#1b110a] to-black border-[#3f2b1d] text-[#d4af37] hover:border-[#d4af37]"}`}>
                       {isAutoMode ? <Square fill="currentColor" size={20} /> : <Play fill="currentColor" size={20} />}
-                      {isAutoMode ? "Stop Auto" : "Auto"}
+                      {isAutoMode ? "Stop Auto" : "Auto Mode"}
                   </button>
-                   <div className="flex flex-col gap-2 bg-black/40 rounded-lg p-3 border border-[#3f2b1d]">
+                   <div className="flex flex-col gap-2 bg-black/60 rounded-xl p-3 border border-[#3f2b1d] shadow-inner">
                       <div className="flex items-center gap-2 border-b border-[#3f2b1d] pb-2 mb-1">
                          <ShieldAlert size={14} className="text-[#8b4513]" />
-                         <span className="text-[10px] uppercase font-bold text-[#8b4513]">Sécurité Automatique</span>
+                         <span className="text-[10px] uppercase font-black text-[#8b4513] tracking-widest">Sécurité Auto</span>
                       </div>
-                      
-                      {/* STOP LOSS ROW */}
                       <div className="flex items-center justify-between">
                          <div className="flex items-center gap-2">
-                            <button onClick={() => setStopLossEnabled(!stopLossEnabled)} className={`p-1 rounded transition-colors ${stopLossEnabled ? "text-red-500 bg-red-500/10" : "text-zinc-600"}`}>
+                            <button onClick={() => setStopLossEnabled(!stopLossEnabled)} className={`p-1.5 rounded transition-all ${stopLossEnabled ? "text-red-500 bg-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.2)]" : "text-zinc-700 hover:text-zinc-500"}`}>
                                {stopLossEnabled ? <Power size={14}/> : <PowerOff size={14}/>}
                             </button>
-                            <span className={`text-[9px] uppercase font-bold ${stopLossEnabled ? "text-white" : "text-zinc-600"}`}>Stop Loss</span>
+                            <span className={`text-[9px] uppercase font-black tracking-wider ${stopLossEnabled ? "text-white" : "text-zinc-700"}`}>Stop Loss</span>
                          </div>
-                         <div className={`flex items-center gap-1.5 ${!stopLossEnabled && "opacity-20 pointer-events-none"}`}>
-                            <button onClick={() => setStopLossValue(Math.max(0, stopLossValue - 10))} className="hover:text-white text-[10px] font-bold">-10</button>
-                            <button onClick={() => setStopLossValue(Math.max(0, stopLossValue - 1))} className="hover:text-white"><Minus size={12}/></button>
-                            <span className="text-xs font-black text-white w-10 text-center">{stopLossValue}€</span>
-                            <button onClick={() => setStopLossValue(stopLossValue + 1)} className="hover:text-white"><Plus size={12}/></button>
-                            <button onClick={() => setStopLossValue(stopLossValue + 10)} className="hover:text-white text-[10px] font-bold">+10</button>
+                         <div className={`flex items-center gap-1.5 bg-black/40 p-1 rounded-md ${!stopLossEnabled && "opacity-20 grayscale pointer-events-none"}`}>
+                            <button onClick={() => setStopLossValue(Math.max(0, stopLossValue - 10))} className="hover:text-white px-1 text-[10px] font-black text-[#8b4513]">-10</button>
+                            <button onClick={() => setStopLossValue(Math.max(0, stopLossValue - 1))} className="hover:text-white"><Minus size={14} className="text-[#8b4513]"/></button>
+                            <span className="text-sm font-black text-white w-10 text-center font-mono">{stopLossValue}€</span>
+                            <button onClick={() => setStopLossValue(stopLossValue + 1)} className="hover:text-white"><Plus size={14} className="text-[#8b4513]"/></button>
+                            <button onClick={() => setStopLossValue(stopLossValue + 10)} className="hover:text-white px-1 text-[10px] font-black text-[#8b4513]">+10</button>
                          </div>
                       </div>
-
-                      {/* STOP WIN ROW */}
                       <div className="flex items-center justify-between">
                          <div className="flex items-center gap-2">
-                            <button onClick={() => setStopWinEnabled(!stopWinEnabled)} className={`p-1 rounded transition-colors ${stopWinEnabled ? "text-[#d4af37] bg-[#d4af37]/10" : "text-zinc-600"}`}>
+                            <button onClick={() => setStopWinEnabled(!stopWinEnabled)} className={`p-1.5 rounded transition-all ${stopWinEnabled ? "text-[#d4af37] bg-[#d4af37]/20 shadow-[0_0_10px_rgba(212,175,55,0.2)]" : "text-zinc-700 hover:text-zinc-500"}`}>
                                {stopWinEnabled ? <Power size={14}/> : <PowerOff size={14}/>}
                             </button>
-                            <span className={`text-[9px] uppercase font-bold ${stopWinEnabled ? "text-[#d4af37]" : "text-zinc-600"}`}>Stop Win</span>
+                            <span className={`text-[9px] uppercase font-black tracking-wider ${stopWinEnabled ? "text-[#d4af37]" : "text-zinc-700"}`}>Stop Win</span>
                          </div>
-                         <div className={`flex items-center gap-1.5 ${!stopWinEnabled && "opacity-20 pointer-events-none"}`}>
-                            <button onClick={() => setStopWinValue(Math.max(0, stopWinValue - 10))} className="hover:text-[#d4af37] text-[10px] font-bold">-10</button>
-                            <button onClick={() => setStopWinValue(Math.max(0, stopWinValue - 1))} className="hover:text-[#d4af37]"><Minus size={12}/></button>
-                            <span className="text-xs font-black text-[#d4af37] w-10 text-center">{stopWinValue}€</span>
-                            <button onClick={() => setStopWinValue(stopWinValue + 1)} className="hover:text-[#d4af37]"><Plus size={12}/></button>
-                            <button onClick={() => setStopWinValue(stopWinValue + 10)} className="hover:text-[#d4af37] text-[10px] font-bold">+10</button>
+                         <div className={`flex items-center gap-1.5 bg-black/40 p-1 rounded-md ${!stopWinEnabled && "opacity-20 grayscale pointer-events-none"}`}>
+                            <button onClick={() => setStopWinValue(Math.max(0, stopWinValue - 10))} className="hover:text-[#d4af37] px-1 text-[10px] font-black">-10</button>
+                            <button onClick={() => setStopWinValue(Math.max(0, stopWinValue - 1))} className="hover:text-[#d4af37]"><Minus size={14}/></button>
+                            <span className="text-sm font-black text-[#d4af37] w-10 text-center font-mono">{stopWinValue}€</span>
+                            <button onClick={() => setStopWinValue(stopWinValue + 1)} className="hover:text-[#d4af37]"><Plus size={14}/></button>
+                            <button onClick={() => setStopWinValue(stopWinValue + 10)} className="hover:text-[#d4af37] px-1 text-[10px] font-black">+10</button>
                          </div>
                       </div>
                    </div>
                </div>
-               <button onClick={startSpinRaw} disabled={isSpinning || (Object.keys(activeBets).length === 0 && Object.keys(lastBets).length === 0)} className="flex-[2] py-5 bg-gradient-to-tr from-[#8b4513] to-[#d4af37] text-black font-black text-2xl rounded-xl shadow-[0_8px_0_#3f2b1d] active:shadow-none active:translate-y-2 transition-all disabled:opacity-50 disabled:grayscale uppercase">Lancer la bille</button>
+               <button onClick={startSpinRaw} disabled={isSpinning || (Object.keys(activeBets).length === 0 && Object.keys(lastBets).length === 0)} className="flex-[2] py-5 bg-gradient-to-tr from-[#8b4513] to-[#d4af37] text-black font-black text-3xl rounded-xl shadow-[0_10px_0_#3f2b1d] active:shadow-none active:translate-y-2 transition-all disabled:opacity-50 disabled:grayscale uppercase italic tracking-tighter">Lancer la Bille</button>
             </div>
           </div>
 
-          <div className="flex flex-col gap-4">
+          {/* MIDDLE COLUMN: GAME BOARD */}
+          <div className="flex flex-col gap-5">
             <RouletteBoard onPlaceBet={placeBet} activeBets={activeBets} currentChip={currentChip} isEraserMode={isEraserMode} />
-            <div className="grid grid-cols-3 gap-2">
-               <button onClick={() => { setIsEraserMode(!isEraserMode); setIsAutoMode(false); }} className={`flex items-center justify-center gap-2 py-3 rounded-lg border-2 transition-all font-black text-xs uppercase ${isEraserMode ? "bg-red-900 border-red-500 text-white shadow-[0_0_15px_rgba(255,0,0,0.3)] animate-pulse" : "bg-zinc-900 border-[#3f2b1d] text-[#8b4513] hover:border-[#d4af37]"}`}><Eraser size={16} /> Gomme</button>
-               <button onClick={doubleCurrentBets} disabled={isSpinning || Object.keys(activeBets).length === 0} className="flex items-center justify-center gap-2 py-3 rounded-lg border-2 bg-zinc-900 border-[#3f2b1d] text-[#e5c299] font-black text-xs uppercase hover:border-[#d4af37] hover:text-[#d4af37] disabled:opacity-50"><TrendingUp size={16} /> Doubler (x2)</button>
-               <button onClick={() => repeatLastBetsRaw()} disabled={isSpinning || Object.keys(lastBets).length === 0} className="flex items-center justify-center gap-2 py-3 rounded-lg border-2 bg-zinc-900 border-[#3f2b1d] text-[#e5c299] font-black text-xs uppercase hover:border-[#d4af37] hover:text-[#d4af37] disabled:opacity-50"><RotateCcw size={16} /> Répéter</button>
+            <div className="grid grid-cols-3 gap-3">
+               <button onClick={() => { setIsEraserMode(!isEraserMode); setIsAutoMode(false); }} className={`flex items-center justify-center gap-3 py-4 rounded-xl border-4 transition-all font-black text-sm uppercase italic shadow-lg ${isEraserMode ? "bg-red-950 border-red-500 text-white shadow-[0_0_20px_rgba(255,0,0,0.4)] animate-pulse" : "bg-black/60 border-[#3f2b1d] text-[#8b4513] hover:border-[#d4af37]"}`}><Eraser size={20} /> Gomme</button>
+               <button onClick={doubleCurrentBets} disabled={isSpinning || Object.keys(activeBets).length === 0} className="flex items-center justify-center gap-3 py-4 rounded-xl border-4 bg-black/60 border-[#3f2b1d] text-[#e5c299] font-black text-sm uppercase italic hover:border-[#d4af37] hover:text-[#d4af37] shadow-lg disabled:opacity-30"><TrendingUp size={20} /> Doubler x2</button>
+               <button onClick={() => repeatLastBetsRaw()} disabled={isSpinning || Object.keys(lastBets).length === 0} className="flex items-center justify-center gap-3 py-4 rounded-xl border-4 bg-black/60 border-[#3f2b1d] text-[#e5c299] font-black text-sm uppercase italic hover:border-[#d4af37] hover:text-[#d4af37] shadow-lg disabled:opacity-30"><RotateCcw size={20} /> Répéter</button>
             </div>
             
-            <div className="sm:hidden flex items-center justify-between bg-black/40 p-4 rounded-xl border border-[#3f2b1d]">
-               <div className="flex items-center gap-2">
-                  <Lock size={16} className="text-[#d4af37]" />
-                  <div className="text-xl font-black text-white">{vaultBalance.toFixed(2)}€</div>
+            <div className="sm:hidden flex items-center justify-between bg-black/60 p-5 rounded-2xl border-2 border-[#3f2b1d] shadow-2xl">
+               <div className="flex items-center gap-3">
+                  <Lock size={20} className="text-[#d4af37]" />
+                  <div className="text-2xl font-black text-white">{vaultBalance.toFixed(2)}€</div>
                </div>
                <div className="flex gap-2">
-                  <button onClick={() => moveToVault(5)} className="px-4 py-2 bg-[#3f2b1d] rounded font-bold">+5€</button>
-                  <button onClick={recoverFromVault} className="px-4 py-2 bg-zinc-800 rounded font-bold"><RefreshCw size={16}/></button>
+                  <button onClick={() => moveToVault(5)} className="px-5 py-2.5 bg-[#8b4513] rounded-lg font-black shadow-md border border-[#d4af37]/30">+5€</button>
+                  <button onClick={recoverFromVault} className="px-5 py-2.5 bg-zinc-800 rounded-lg font-black shadow-md border border-white/10"><RefreshCw size={20}/></button>
                </div>
             </div>
 
-            <div className="bg-black/40 p-5 rounded-xl border border-[#3f2b1d]"><div className="flex justify-between items-center mb-4"><span className="text-[10px] uppercase tracking-widest text-[#d4af37]">Choisir vos jetons</span><button onClick={resetCurrentBets} className="flex items-center gap-2 text-[10px] hover:text-white transition-colors"><RefreshCw size={12} /> ANNULER TOUT</button></div><div className="flex justify-between gap-1.5">{CHIP_VALUES.map((val) => (<button key={val} onClick={() => { setCurrentChip(val); setIsEraserMode(false); }} className={`relative w-12 h-12 md:w-16 md:h-16 rounded-full border-4 border-dashed flex items-center justify-center font-black transition-all text-xs md:text-sm ${currentChip === val && !isEraserMode ? "scale-110 border-white shadow-[0_0_15px_white] z-10" : "border-[#3f2b1d] opacity-60 hover:opacity-100 hover:scale-105"} ${val < 1 ? "bg-zinc-500 text-black" : val < 10 ? "bg-blue-800 text-white" : val < 20 ? "bg-red-800 text-white" : "bg-black text-[#d4af37] border-[#d4af37]"}`}>{val}€</button>))}</div></div>
-            <div className="flex items-center gap-3 text-xs text-[#8b4513] italic px-2"><History size={14} /> Mise totale ce tour : {Object.values(activeBets).reduce((a, b) => a + b, 0).toFixed(2)}€ / 50€</div>
+            <div className="bg-black/80 p-6 rounded-2xl border-2 border-[#3f2b1d] shadow-[0_20px_50px_rgba(0,0,0,0.6)] relative overflow-hidden">
+               <div className="absolute top-0 right-0 p-4 opacity-5"><Coins size={80} /></div>
+               <div className="flex justify-between items-center mb-6 relative z-10"><span className="text-xs uppercase font-black tracking-[0.3em] text-[#d4af37] italic">Sélecteur de Jetons</span><button onClick={resetCurrentBets} className="flex items-center gap-2 text-[10px] font-black text-[#5c4033] hover:text-[#d4af37] transition-all tracking-widest uppercase italic"><RefreshCw size={12} /> Réinitialiser</button></div>
+               <div className="flex justify-between gap-2 relative z-10">{CHIP_VALUES.map((val) => (<button key={val} onClick={() => { setCurrentChip(val); setIsEraserMode(false); }} className={`relative w-14 h-14 md:w-20 md:h-20 rounded-full border-4 border-dashed flex items-center justify-center font-black transition-all text-sm md:text-lg shadow-xl ${currentChip === val && !isEraserMode ? "scale-110 border-white shadow-[0_0_30px_rgba(255,255,255,0.4)] z-10 -translate-y-2" : "border-[#3f2b1d] opacity-50 hover:opacity-100 hover:scale-105"} ${val < 1 ? "bg-zinc-600 text-black" : val < 10 ? "bg-blue-900 text-white" : val < 20 ? "bg-red-900 text-white" : "bg-black text-[#d4af37] border-[#d4af37]"}`}>{val}€</button>))}</div>
+            </div>
+            <div className="flex items-center gap-3 text-sm text-[#8b4513] font-black italic px-3 bg-black/40 py-2 rounded-lg border border-[#3f2b1d]/40"><History size={16} /> Mise totale : <span className="text-white text-lg">{Object.values(activeBets).reduce((a, b) => a + b, 0).toFixed(2)}€</span> <span className="opacity-30">/ 50€ max</span></div>
+          </div>
+
+          {/* RIGHT COLUMN: PERSISTENT STATS DASHBOARD */}
+          <div className="hidden xl:flex flex-col gap-6">
+            <div className="bg-[#f4e4bc] p-6 rounded-2xl border-4 border-[#3f2b1d] shadow-2xl relative overflow-hidden flex flex-col min-h-[700px]">
+              {/* Parchment Texture Overlay */}
+              <div className="absolute inset-0 opacity-20 pointer-events-none mix-blend-multiply bg-[url('https://www.transparenttextures.com/patterns/paper.png')]" />
+              <div className="absolute inset-0 opacity-5 pointer-events-none border-[12px] border-[#3f2b1d] m-2 rounded-xl" />
+              
+              <div className="relative z-10 flex flex-col h-full">
+                <div className="flex items-center gap-3 mb-8 border-b-2 border-[#3f2b1d]/20 pb-4">
+                  <BarChart3 size={24} className="text-[#3f2b1d]" />
+                  <h3 className="text-xl font-black italic text-[#3f2b1d] tracking-widest uppercase">Livre de Stats</h3>
+                </div>
+
+                <div className="space-y-10 flex-1">
+                  {/* HOT SECTION */}
+                  <section>
+                    <div className="flex items-center justify-between mb-5">
+                      <div className="flex items-center gap-2 text-red-700">
+                        <Flame size={18} fill="currentColor" />
+                        <h4 className="text-[11px] font-black uppercase tracking-widest">Tirages Chauds</h4>
+                      </div>
+                      <span className="text-[10px] italic font-bold text-[#8b4513] opacity-60">Session</span>
+                    </div>
+                    <div className="grid grid-cols-1 gap-3">
+                       {statsData.hot.map(([num, count]) => (
+                         <div key={num} className="flex items-center justify-between bg-white/40 p-2.5 rounded-lg border-2 border-red-800/20 shadow-sm group hover:border-red-600 transition-all">
+                            <div className="flex items-center gap-3">
+                               <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-black border-2 border-white/40 shadow-md ${num === "0" ? "bg-green-700" : REDS.includes(Number(num)) ? "bg-red-800" : "bg-black"}`}>{num}</div>
+                               <div className="flex flex-col">
+                                  <span className="text-[9px] uppercase font-black text-[#5c4033]">Numéro {num}</span>
+                                  <div className="h-1.5 w-24 bg-zinc-300 rounded-full overflow-hidden mt-1"><motion.div initial={{ width: 0 }} animate={{ width: `${(count/statsData.total)*300}%` }} className="h-full bg-red-600" /></div>
+                               </div>
+                            </div>
+                            <div className="text-right">
+                               <div className="text-sm font-black text-red-900">{count}x</div>
+                               <div className="text-[8px] uppercase font-bold text-red-800/60 tracking-tighter">Fréquence</div>
+                            </div>
+                         </div>
+                       ))}
+                    </div>
+                  </section>
+
+                  {/* COLD SECTION */}
+                  <section>
+                    <div className="flex items-center justify-between mb-5">
+                      <div className="flex items-center gap-2 text-blue-800">
+                        <Snowflake size={18} />
+                        <h4 className="text-[11px] font-black uppercase tracking-widest">Tirages Froids</h4>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 gap-3">
+                       {statsData.cold.map(([num, count]) => (
+                         <div key={num} className="flex items-center justify-between bg-white/20 p-2.5 rounded-lg border-2 border-blue-900/10 shadow-sm opacity-60 grayscale-[0.5]">
+                            <div className="flex items-center gap-3">
+                               <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-black border-2 border-white/40 ${num === "0" ? "bg-green-700" : REDS.includes(Number(num)) ? "bg-red-800" : "bg-black"}`}>{num}</div>
+                               <div className="flex flex-col">
+                                  <span className="text-[9px] uppercase font-black text-blue-900/60">Numéro {num}</span>
+                                  <div className="h-1.5 w-24 bg-zinc-300 rounded-full overflow-hidden mt-1"><motion.div initial={{ width: 0 }} animate={{ width: `${(count/statsData.total)*300}%` }} className="h-full bg-blue-400" /></div>
+                               </div>
+                            </div>
+                            <div className="text-right">
+                               <div className="text-sm font-black text-blue-900">{count}x</div>
+                            </div>
+                         </div>
+                       ))}
+                    </div>
+                  </section>
+
+                  {/* ADVANCED DISTRIBUTION */}
+                  <section className="bg-black/5 p-4 rounded-xl border-2 border-[#3f2b1d]/10 mt-auto">
+                      <h4 className="text-[10px] font-black uppercase tracking-widest text-[#3f2b1d] mb-6 flex items-center justify-center gap-2 border-b border-[#3f2b1d]/10 pb-2">
+                         <BarChart3 size={12} /> Thermomètre Trends
+                      </h4>
+                      <div className="space-y-6">
+                        <div className="h-4 w-full bg-zinc-300/50 rounded-full overflow-hidden flex border-2 border-[#3f2b1d]/20 shadow-inner">
+                           <motion.div initial={{ width: 0 }} animate={{ width: `${(statsData.red/statsData.total)*100}%` }} className="h-full bg-red-700 border-r border-white/20" />
+                           <motion.div initial={{ width: 0 }} animate={{ width: `${(statsData.black/statsData.total)*100}%` }} className="h-full bg-black border-r border-white/20" />
+                           <motion.div initial={{ width: 0 }} animate={{ width: `${(statsData.green/statsData.total)*100}%` }} className="h-full bg-green-700" />
+                        </div>
+                        <div className="grid grid-cols-3 gap-1 text-[9px] font-black italic tracking-tighter uppercase text-center">
+                           <div className="flex flex-col gap-1">
+                              <span className="text-red-800">Rouges</span>
+                              <span className="bg-red-800/10 py-1 rounded-sm text-red-900">{Math.round((statsData.red/statsData.total)*100)}%</span>
+                           </div>
+                           <div className="flex flex-col gap-1">
+                              <span className="text-black/60">Noirs</span>
+                              <span className="bg-black/5 py-1 rounded-sm text-black">{Math.round((statsData.black/statsData.total)*100)}%</span>
+                           </div>
+                           <div className="flex flex-col gap-1">
+                              <span className="text-green-800">Verts</span>
+                              <span className="bg-green-700/10 py-1 rounded-sm text-green-900">{Math.round((statsData.green/statsData.total)*100)}%</span>
+                           </div>
+                        </div>
+                      </div>
+                  </section>
+                </div>
+                
+                <div className="mt-8 text-[9px] text-[#8b4513] text-center italic border-t border-[#3f2b1d]/10 pt-4 uppercase leading-relaxed tracking-widest">
+                   Données Session Uniquement<br/>Reset au rafraîchissement
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
+      {/* OVERLAYS */}
       <AnimatePresence>{!initialBalanceSet && (<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4"><motion.div initial={{ scale: 0.8, rotateX: 20 }} animate={{ scale: 1, rotateX: 0 }} className="bg-[#1a110a] border-4 border-[#d4af37] p-8 max-w-sm w-full rounded-2xl shadow-[0_0_120px_rgba(212,175,55,0.3)] text-center"><Trophy className="mx-auto text-[#d4af37] mb-4" size={42} /><h2 className="text-2xl font-black mb-1 text-white uppercase italic">Bienvenue, Étranger</h2><p className="text-[#8b4513] mb-8 text-sm italic">Combien d'or as-tu dans ton sac ? (1€ - 50€)</p><div className="grid grid-cols-2 gap-3 mb-6">{[10, 20, 30, 50].map((num) => (<button key={num} onClick={() => handleInitialBalance(num)} className="py-3 bg-[#3f2b1d] border border-[#d4af37]/30 rounded-lg font-bold hover:bg-[#d4af37] hover:text-black transition-all">{num}€</button>))}</div><div className="text-[9px] text-[#3f2b1d] uppercase tracking-widest mt-4">La fortune sourit aux audacieux... ou les ruine.</div></motion.div></motion.div>)}</AnimatePresence>
       <AnimatePresence>{showLeaderboard && (<motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} className="fixed inset-y-0 right-0 w-full max-w-xs z-[60] bg-[#1a110a] border-l-4 border-[#d4af37]/40 p-8 shadow-2xl shadow-black"><button onClick={() => setShowLeaderboard(false)} className="absolute top-4 right-4 text-[#d4af37] hover:rotate-90 transition-transform"><RefreshCw size={24} className="rotate-45" /></button><h3 className="text-xl font-black mb-8 italic border-b border-[#3f2b1d] pb-2 text-[#d4af37]">VOS RECORDS</h3><div className="space-y-6"><div className="bg-black/40 p-4 rounded border border-[#d4af37]/20"><div className="text-[10px] uppercase text-[#8b4513] mb-1 font-black">Record de gain en un tour</div><div className="text-3xl font-black text-white">{highScore.toFixed(2)}€</div></div><div className="text-[10px] text-[#5c4033] leading-relaxed italic border-t border-[#3f2b1d] pt-4">Note : Vos records sont sauvegardés localement. Pour un classement mondial, une base de données serait requise.</div></div></motion.div>)}</AnimatePresence>
       <AnimatePresence>{showHistory && (<motion.div initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} className="fixed inset-y-0 left-0 w-full max-w-sm z-[60] bg-[#1a110a] border-r-4 border-[#d4af37]/40 p-6 shadow-2xl shadow-black overflow-hidden flex flex-col"><div className="flex justify-between items-center mb-8 border-b border-[#3f2b1d] pb-2"><h3 className="text-xl font-black italic text-[#d4af37]">JOURNAL DE BORD</h3><button onClick={() => setShowHistory(false)} className="text-[#8b4513] hover:text-[#d4af37]"><ArrowLeft size={24} /></button></div><div className="bg-black/60 p-4 rounded border border-[#d4af37]/20 mb-6 flex flex-col gap-3"><div className="flex justify-between items-center"><div><div className="text-[10px] uppercase text-[#8b4513] font-black">Profit Session</div><div className={`text-2xl font-black ${sessionProfit >= 0 ? "text-green-500" : "text-red-500"}`}>{sessionProfit >= 0 ? "+" : ""}{sessionProfit.toFixed(2)}€</div></div><ListOrdered size={32} className="opacity-20 text-[#d4af37]" /></div><div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#3f2b1d]"><div><div className="text-[8px] uppercase text-[#5c4033] font-black">Sommet (Max)</div><div className="text-xs font-bold text-[#d4af37]">{maxBalance.toFixed(2)}€</div></div><div className="text-right"><div className="text-[8px] uppercase text-[#5c4033] font-black">Abysse (Min)</div><div className="text-xs font-bold text-white">{minBalance.toFixed(2)}€</div></div></div></div><div className="flex-1 overflow-auto pr-2 space-y-2 custom-scrollbar">{sessionHistory.length === 0 ? (<div className="text-center py-10 text-[#3f2b1d] italic text-sm">Aucune manche enregistrée...</div>) : (sessionHistory.map((round) => (<div key={round.id} className="bg-black/40 border border-[#3f2b1d] p-3 rounded flex justify-between items-center group hover:border-[#d4af37]/40 transition-colors"><div className="flex items-center gap-3"><div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-black border border-white/10 ${round.result === 0 ? "bg-green-700" : round.color === "ROUGE" ? "bg-red-800" : "bg-zinc-900"}`}>{round.result}</div><div><div className="text-[9px] text-[#5c4033] uppercase">Manche #{round.id}</div><div className="text-[10px] text-[#8b4513]">Mise: {round.totalBet}€ | Gain: {round.totalWin}€</div></div></div><div className={`text-sm font-black ${round.net >= 0 ? "text-green-500" : "text-red-500"}`}>{round.net >= 0 ? "+" : ""}{round.net.toFixed(2)}€</div></div>)))}</div><div className="mt-6 pt-4 border-t border-[#3f2b1d] text-[9px] text-[#3f2b1d] text-center uppercase">Historique temporaire (Reset au rafraîchissement)</div></motion.div>)}</AnimatePresence>
-
-      <AnimatePresence>
-        {showStats && (
-          <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} className="fixed inset-y-0 right-0 w-full max-w-sm z-[60] bg-[#1a110a] border-l-4 border-[#d4af37]/40 p-6 shadow-2xl shadow-black overflow-hidden flex flex-col">
-            <div className="flex justify-between items-center mb-8 border-b border-[#3f2b1d] pb-2">
-              <h3 className="text-xl font-black italic text-[#d4af37]">STATISTIQUES SESSION</h3>
-              <button onClick={() => setShowStats(false)} className="text-[#8b4513] hover:text-[#d4af37]"><RefreshCw size={24} className="rotate-45" /></button>
-            </div>
-            
-            <div className="flex-1 overflow-auto space-y-8 pr-2 custom-scrollbar">
-              {/* HOT NUMBERS */}
-              <section>
-                <div className="flex items-center gap-2 mb-4 text-[#d4af37]">
-                  <Play size={16} fill="currentColor" className="-rotate-90" />
-                  <h4 className="text-[10px] font-black uppercase tracking-widest">Chiffres Chauds (Hot)</h4>
-                </div>
-                <div className="grid grid-cols-5 gap-2">
-                   {Object.entries(numberFrequency)
-                     .sort(([,a], [,b]) => b - a)
-                     .slice(0, 5)
-                     .map(([num, count]) => (
-                       <div key={num} className="flex flex-col items-center gap-1">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-black border border-white/10 shadow-lg ${num === "0" ? "bg-green-700" : REDS.includes(Number(num)) ? "bg-red-800" : "bg-black"}`}>{num}</div>
-                          <div className="text-[8px] text-[#8b4513] font-bold">{count}x</div>
-                       </div>
-                   ))}
-                </div>
-              </section>
-
-              {/* COLD NUMBERS */}
-              <section>
-                <div className="flex items-center gap-2 mb-4 text-[#5c4033]">
-                  <RotateCcw size={16} className="text-[#5c4033]" />
-                  <h4 className="text-[10px] font-black uppercase tracking-widest text-[#5c4033]">Chiffres Froids (Cold)</h4>
-                </div>
-                <div className="grid grid-cols-5 gap-2">
-                   {Object.entries(numberFrequency)
-                     .sort(([,a], [,b]) => a - b)
-                     .slice(0, 5)
-                     .map(([num, count]) => (
-                       <div key={num} className="flex flex-col items-center gap-1">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-black border border-white/10 shadow-lg opacity-40 ${num === "0" ? "bg-green-700" : REDS.includes(Number(num)) ? "bg-red-800" : "bg-black"}`}>{num}</div>
-                          <div className="text-[8px] text-[#3f2b1d] font-bold">{count}x</div>
-                       </div>
-                   ))}
-                </div>
-              </section>
-
-              {/* COLOR DISTRIBUTION */}
-              <section className="bg-black/40 p-4 rounded-xl border border-[#3f2b1d]">
-                  <h4 className="text-[10px] font-black uppercase tracking-widest text-[#8b4513] mb-4">Répartition Couleurs</h4>
-                  {(() => {
-                    const total = Object.values(numberFrequency).reduce((a, b) => a + b, 0) || 1;
-                    const green = numberFrequency[0] || 0;
-                    const red = Object.entries(numberFrequency).filter(([n]) => REDS.includes(Number(n))).reduce((a, [,b]) => a + b, 0);
-                    const black = total - red - green;
-                    
-                    return (
-                      <div className="space-y-4">
-                        <div className="h-3 w-full bg-zinc-900 rounded-full overflow-hidden flex border border-white/5 shadow-inner">
-                           <div className="bg-red-800" style={{ width: `${(red/total)*100}%` }} />
-                           <div className="bg-black" style={{ width: `${(black/total)*100}%` }} />
-                           <div className="bg-green-700" style={{ width: `${(green/total)*100}%` }} />
-                        </div>
-                        <div className="flex justify-between text-[8px] font-black uppercase tracking-tighter italic">
-                           <span className="text-red-500">ROUGES: {Math.round((red/total)*100)}%</span>
-                           <span className="text-zinc-500">NOIRS: {Math.round((black/total)*100)}%</span>
-                           <span className="text-green-500">VERTS: {Math.round((green/total)*100)}%</span>
-                        </div>
-                      </div>
-                    );
-                  })()}
-              </section>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </main>
   );
 }
