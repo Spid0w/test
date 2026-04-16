@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { RouletteWheel } from "@/components/casino/RouletteWheel";
 import { RouletteBoard } from "@/components/casino/RouletteBoard";
-import { Coins, Trophy, History, ArrowLeft, RefreshCw, Eraser, TrendingUp, RotateCcw, Play, Square, ListOrdered, Lock, Wallet, ShieldAlert, Plus, Minus } from "lucide-react";
+import { Coins, Trophy, History, ArrowLeft, RefreshCw, Eraser, TrendingUp, RotateCcw, Play, Square, ListOrdered, Lock, Wallet, ShieldAlert, Plus, Minus, Power, PowerOff } from "lucide-react";
 import Link from "next/link";
 
 const REDS = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
@@ -22,8 +22,13 @@ interface SessionRound {
 export default function RoulettePage() {
   const [balance, setBalance] = useState<number | null>(null);
   const [vaultBalance, setVaultBalance] = useState(0);
-  const [stopLimit, setStopLimit] = useState(0);
-  const [winLimit, setWinLimit] = useState(0);
+  
+  // Refined safety state
+  const [stopLossEnabled, setStopLossEnabled] = useState(false);
+  const [stopLossValue, setStopLossValue] = useState(0);
+  const [stopWinEnabled, setStopWinEnabled] = useState(false);
+  const [stopWinValue, setStopWinValue] = useState(100);
+
   const [initialBalanceSet, setInitialBalanceSet] = useState(false);
   const [activeBets, setActiveBets] = useState<Record<string, number>>({});
   const [lastBets, setLastBets] = useState<Record<string, number>>({});
@@ -50,8 +55,11 @@ export default function RoulettePage() {
     activeBets: {} as Record<string, number>,
     lastBets: {} as Record<string, number>,
     balance: 0 as number | null,
-    stopLimit: 0,
-    winLimit: 0,
+    // Refined safety
+    stopLossEnabled: false,
+    stopLossValue: 0,
+    stopWinEnabled: false,
+    stopWinValue: 0,
     initialBalanceSet: false
   });
 
@@ -63,11 +71,13 @@ export default function RoulettePage() {
       activeBets,
       lastBets,
       balance,
-      stopLimit,
-      winLimit,
+      stopLossEnabled,
+      stopLossValue,
+      stopWinEnabled,
+      stopWinValue,
       initialBalanceSet
     };
-  }, [isSpinning, targetNumber, isAutoMode, activeBets, lastBets, balance, stopLimit, winLimit, initialBalanceSet]);
+  }, [isSpinning, targetNumber, isAutoMode, activeBets, lastBets, balance, stopLossEnabled, stopLossValue, stopWinEnabled, stopWinValue, initialBalanceSet]);
 
   const repeatLastBetsRaw = useCallback((silent = false) => {
     const s = stateRef.current;
@@ -88,20 +98,7 @@ export default function RoulettePage() {
     const s = stateRef.current;
     if (s.isSpinning || (Object.keys(s.activeBets).length === 0 && Object.keys(s.lastBets).length === 0)) return;
     
-    // SAFETY LIMIT CHECK (LOSS)
-    if (s.isAutoMode && s.balance !== null && s.balance <= s.stopLimit) {
-       setIsAutoMode(false);
-       setMessage(`LIMITE DE ${s.stopLimit}€ ATTEINTE`);
-       return;
-    }
-
-    // SAFETY LIMIT CHECK (WIN)
-    if (s.isAutoMode && s.balance !== null && s.winLimit > 0 && s.balance >= s.winLimit) {
-       setIsAutoMode(false);
-       setMessage(`OBJECTIF DE ${s.winLimit}€ ATTEINT !`);
-       return;
-    }
-
+    // Check if we can afford the bets (if board empty)
     if (Object.keys(s.activeBets).length === 0) {
        const repeated = repeatLastBetsRaw(true);
        if (!repeated) {
@@ -157,12 +154,11 @@ export default function RoulettePage() {
       if (refund > 0) { finalWin += refund; isPartage = true; }
     }
 
-    setBalance((prev) => {
-      const next = prev !== null ? prev + finalWin : 0;
-      if (next > maxBalance) setMaxBalance(next);
-      if (next < minBalance) setMinBalance(next);
-      return next;
-    });
+    const nextBalance = (stateRef.current.balance || 0) + finalWin;
+    setBalance(nextBalance);
+    if (nextBalance > maxBalance) setMaxBalance(nextBalance);
+    if (nextBalance < minBalance) setMinBalance(nextBalance);
+    
     setHistory((prev) => [result, ...prev].slice(0, 10));
     setSessionHistory(prev => [
       { id: prev.length + 1, result, color: result === 0 ? "VERT" : isResultRed ? "ROUGE" : "NOIR", totalBet, totalWin: finalWin, net: finalWin - totalBet },
@@ -180,8 +176,18 @@ export default function RoulettePage() {
       setMessage(`${stateRef.current.isAutoMode ? "[AUTO] " : ""}RÉSULTAT : ${result} - LA BANQUE GAGNE`);
     }
 
+    // SAFETY CHECKS (MOVE TO END OF ROUND)
     if (stateRef.current.isAutoMode) {
-      workerRef.current?.postMessage({ action: "startTimer", delay: 2000 });
+       const s = stateRef.current;
+       if (s.stopLossEnabled && nextBalance <= s.stopLossValue) {
+          setIsAutoMode(false);
+          setMessage("STOP LOSS ATTEINT");
+       } else if (s.stopWinEnabled && nextBalance >= s.stopWinValue) {
+          setIsAutoMode(false);
+          setMessage("STOP WIN ATTEINT !");
+       } else {
+          workerRef.current?.postMessage({ action: "startTimer", delay: 2000 });
+       }
     }
   }, [maxBalance, minBalance]);
 
@@ -270,8 +276,6 @@ export default function RoulettePage() {
              <h1 className="text-2xl md:text-5xl font-black tracking-tighter italic text-[#d4af37]">EL POCO <span className="text-white">LOCO</span> CASINO</h1>
           </div>
           <div className="flex gap-4 items-center">
-             
-             {/* COFFRE FORT UI */}
              <div className="hidden sm:flex items-center gap-2 bg-[#1b110a] border border-[#3f2b1d] p-1.5 rounded-lg">
                 <div className="flex flex-col items-center">
                    <div className="text-[8px] uppercase text-[#8b4513] font-bold px-2">Coffre-Fort</div>
@@ -286,7 +290,6 @@ export default function RoulettePage() {
                    <button onClick={recoverFromVault} className="bg-zinc-900 border border-[#3f2b1d] hover:border-[#d4af37] w-8 h-8 rounded flex items-center justify-center transition-colors"><RefreshCw size={12} /></button>
                 </div>
              </div>
-
              <div className="flex gap-2">
                 <button onClick={() => { setShowHistory(!showHistory); setShowLeaderboard(false); }} className="flex items-center gap-2 bg-[#1b110a] px-3 py-1.5 rounded border border-[#d4af37]/30 hover:bg-[#3f2b1d] text-xs md:text-sm"><History size={16} className="text-[#d4af37]" /><span className="hidden sm:inline">HISTORIQUE</span></button>
                 <button onClick={() => { setShowLeaderboard(!showLeaderboard); setShowHistory(false); }} className="flex items-center gap-2 bg-[#1b110a] px-3 py-1.5 rounded border border-[#d4af37]/30 hover:bg-[#3f2b1d] text-xs md:text-sm"><Trophy size={16} className="text-[#d4af37]" /><span className="hidden sm:inline">CLASSEMENT</span></button>
@@ -326,27 +329,46 @@ export default function RoulettePage() {
                       {isAutoMode ? <Square fill="currentColor" size={20} /> : <Play fill="currentColor" size={20} />}
                       {isAutoMode ? "Stop Auto" : "Auto"}
                   </button>
-                   <div className="flex items-center justify-center gap-3 bg-black/40 rounded-lg p-2 border border-[#3f2b1d]">
-                     <ShieldAlert size={14} className="text-[#8b4513]" />
-                     <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-4">
-                           <span className="text-[8px] uppercase font-bold text-[#8b4513] w-14">Arrêt Min :</span>
-                           <div className="flex items-center gap-2">
-                              <button onClick={() => setStopLimit(Math.max(0, stopLimit - 5))} className="hover:text-white"><Minus size={12}/></button>
-                              <span className="text-xs font-black text-white w-8 text-center">{stopLimit}€</span>
-                              <button onClick={() => setStopLimit(stopLimit + 5)} className="hover:text-white"><Plus size={12}/></button>
-                           </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                           <span className="text-[8px] uppercase font-bold text-[#d4af37] w-14">Arrêt Max :</span>
-                           <div className="flex items-center gap-2">
-                              <button onClick={() => setWinLimit(Math.max(0, winLimit - 5))} className="hover:text-white"><Minus size={12}/></button>
-                              <span className="text-xs font-black text-[#d4af37] w-8 text-center">{winLimit === 0 ? "OFF" : `${winLimit}€`}</span>
-                              <button onClick={() => setWinLimit(winLimit + 10)} className="hover:text-white"><Plus size={12}/></button>
-                           </div>
-                        </div>
-                     </div>
-                  </div>
+                   <div className="flex flex-col gap-2 bg-black/40 rounded-lg p-3 border border-[#3f2b1d]">
+                      <div className="flex items-center gap-2 border-b border-[#3f2b1d] pb-2 mb-1">
+                         <ShieldAlert size={14} className="text-[#8b4513]" />
+                         <span className="text-[10px] uppercase font-bold text-[#8b4513]">Sécurité Automatique</span>
+                      </div>
+                      
+                      {/* STOP LOSS ROW */}
+                      <div className="flex items-center justify-between">
+                         <div className="flex items-center gap-2">
+                            <button onClick={() => setStopLossEnabled(!stopLossEnabled)} className={`p-1 rounded transition-colors ${stopLossEnabled ? "text-red-500 bg-red-500/10" : "text-zinc-600"}`}>
+                               {stopLossEnabled ? <Power size={14}/> : <PowerOff size={14}/>}
+                            </button>
+                            <span className={`text-[9px] uppercase font-bold ${stopLossEnabled ? "text-white" : "text-zinc-600"}`}>Stop Loss</span>
+                         </div>
+                         <div className={`flex items-center gap-1.5 ${!stopLossEnabled && "opacity-20 pointer-events-none"}`}>
+                            <button onClick={() => setStopLossValue(Math.max(0, stopLossValue - 10))} className="hover:text-white text-[10px] font-bold">-10</button>
+                            <button onClick={() => setStopLossValue(Math.max(0, stopLossValue - 1))} className="hover:text-white"><Minus size={12}/></button>
+                            <span className="text-xs font-black text-white w-10 text-center">{stopLossValue}€</span>
+                            <button onClick={() => setStopLossValue(stopLossValue + 1)} className="hover:text-white"><Plus size={12}/></button>
+                            <button onClick={() => setStopLossValue(stopLossValue + 10)} className="hover:text-white text-[10px] font-bold">+10</button>
+                         </div>
+                      </div>
+
+                      {/* STOP WIN ROW */}
+                      <div className="flex items-center justify-between">
+                         <div className="flex items-center gap-2">
+                            <button onClick={() => setStopWinEnabled(!stopWinEnabled)} className={`p-1 rounded transition-colors ${stopWinEnabled ? "text-[#d4af37] bg-[#d4af37]/10" : "text-zinc-600"}`}>
+                               {stopWinEnabled ? <Power size={14}/> : <PowerOff size={14}/>}
+                            </button>
+                            <span className={`text-[9px] uppercase font-bold ${stopWinEnabled ? "text-[#d4af37]" : "text-zinc-600"}`}>Stop Win</span>
+                         </div>
+                         <div className={`flex items-center gap-1.5 ${!stopWinEnabled && "opacity-20 pointer-events-none"}`}>
+                            <button onClick={() => setStopWinValue(Math.max(0, stopWinValue - 10))} className="hover:text-[#d4af37] text-[10px] font-bold">-10</button>
+                            <button onClick={() => setStopWinValue(Math.max(0, stopWinValue - 1))} className="hover:text-[#d4af37]"><Minus size={12}/></button>
+                            <span className="text-xs font-black text-[#d4af37] w-10 text-center">{stopWinValue}€</span>
+                            <button onClick={() => setStopWinValue(stopWinValue + 1)} className="hover:text-[#d4af37]"><Plus size={12}/></button>
+                            <button onClick={() => setStopWinValue(stopWinValue + 10)} className="hover:text-[#d4af37] text-[10px] font-bold">+10</button>
+                         </div>
+                      </div>
+                   </div>
                </div>
                <button onClick={startSpinRaw} disabled={isSpinning || (Object.keys(activeBets).length === 0 && Object.keys(lastBets).length === 0)} className="flex-[2] py-5 bg-gradient-to-tr from-[#8b4513] to-[#d4af37] text-black font-black text-2xl rounded-xl shadow-[0_8px_0_#3f2b1d] active:shadow-none active:translate-y-2 transition-all disabled:opacity-50 disabled:grayscale uppercase">Lancer la bille</button>
             </div>
@@ -360,7 +382,6 @@ export default function RoulettePage() {
                <button onClick={() => repeatLastBetsRaw()} disabled={isSpinning || Object.keys(lastBets).length === 0} className="flex items-center justify-center gap-2 py-3 rounded-lg border-2 bg-zinc-900 border-[#3f2b1d] text-[#e5c299] font-black text-xs uppercase hover:border-[#d4af37] hover:text-[#d4af37] disabled:opacity-50"><RotateCcw size={16} /> Répéter</button>
             </div>
             
-            {/* MOBILE COFFRE FORT */}
             <div className="sm:hidden flex items-center justify-between bg-black/40 p-4 rounded-xl border border-[#3f2b1d]">
                <div className="flex items-center gap-2">
                   <Lock size={16} className="text-[#d4af37]" />
