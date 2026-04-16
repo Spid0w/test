@@ -91,13 +91,13 @@ export default function RoulettePage() {
     setActiveBets({});
 
     if (totalWin > 0) {
-      setMessage(`GAGNÉ : ${totalWin.toFixed(2)}€ !`);
+      setMessage(`GAGNÉ : ${result} ${isResultRed ? "ROUGE" : result === 0 ? "VERT" : "NOIR"} (${totalWin.toFixed(2)}€)`);
       if (totalWin > highScore) {
         setHighScore(totalWin);
         localStorage.setItem("roulette_highscore", totalWin.toString());
       }
     } else {
-      setMessage(`RÉSULTAT : ${result} - LA BANQUE GAGNE`);
+      setMessage(`RÉSULTAT : ${result} ${isResultRed ? "ROUGE" : result === 0 ? "VERT" : "NOIR"} - LA BANQUE GAGNE`);
     }
   };
 

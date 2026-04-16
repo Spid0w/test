@@ -111,7 +111,7 @@ export function RouletteWheel({ onSpinEnd, isSpinning, targetNumber }: RouletteW
                   fontSize="3.8"
                   fontWeight="900"
                   textAnchor="middle"
-                  transform={`rotate(${(angle / 2)} 50 10)`}
+                  transform={`rotate(${(angle / 2)} 50 50)`}
                   className="font-serif"
                   style={{ userSelect: "none" }}
                 >
