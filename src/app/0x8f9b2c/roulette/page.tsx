@@ -266,7 +266,11 @@ export default function RoulettePage() {
   const PRESETS = [
     { name: "Romanovsky", proba: "86.5%", desc: "Couverture massive", action: () => applyPreset({ "doz1": 1.5, "doz2": 1.5, "corner_2_1_5_4": 0.5, "corner_33_32_36_35": 0.5 }) },
     { name: "James Bond", proba: "67.6%", desc: "Mixte 0/Ligne/Passe", action: () => applyPreset({ "high": 7.5, "nums_13_14_15_16_17_18": 2.5, "0": 0.5 }) },
-    { name: "666 Strategy", proba: "89.2%", desc: "Presque toute la table", action: () => applyPreset({ "red": 9, "split_0_2": 1, "split_8_11": 1, "split_10_13": 1, "split_17_20": 1, "split_26_29": 1, "split_28_31": 1, "4": 0.5, "6": 0.5, "15": 0.5, "22": 0.5, "24": 0.5, "33": 0.5, "35": 0.5 }) },
+    { name: "666 Strategy", proba: "89.2%", desc: "Presque toute la table", action: () => applyPreset({ 
+        "red": 9, 
+        "split_8_11": 1, "split_10_13": 1, "split_17_20": 1, "split_28_31": 1, "split_30_33": 1,
+        "split_1_4": 0.5, "split_3_6": 0.5, "split_12_15": 0.5, "split_22_25": 0.5, "split_24_27": 0.5, "split_26_29": 0.5, "split_32_35": 0.5
+    }) },
     { name: "Safety 32", proba: "86.5%", desc: "Le Grinder (+0.50€)", action: () => applyPreset({ "doz1": 1.5, "doz2": 1.5, "corner_26_25_29_28": 0.5, "corner_33_32_36_35": 0.5 }) },
     { name: "Assurance Zéro", proba: "2.7% Jackpot", desc: "Perte max 0.50€", action: () => applyPreset({ "doz1": 1.5, "doz2": 1.5, "doz3": 1.5, "0": 0.5 }) },
     { name: "Muraille 35", proba: "94.6%", desc: "Gagne 0.50€ souvent", action: () => {

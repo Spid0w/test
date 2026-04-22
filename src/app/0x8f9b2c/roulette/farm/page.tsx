@@ -239,7 +239,11 @@ export default function RouletteFarmPage() {
                            setPlateaus(p => { const n = [...p]; n[activeIndex] = bets; return n; });
                          }},
                          { name: "666 Strategy", proba: "89.2%", desc: "Presque toute la table", action: () => {
-                           const bets = { "red": 9, "split_0_2": 1, "split_8_11": 1, "split_10_13": 1, "split_17_20": 1, "split_26_29": 1, "split_28_31": 1, "4": 0.5, "6": 0.5, "15": 0.5, "22": 0.5, "24": 0.5, "33": 0.5, "35": 0.5 };
+                           const bets = { 
+                             "red": 9, 
+                             "split_8_11": 1, "split_10_13": 1, "split_17_20": 1, "split_28_31": 1, "split_30_33": 1,
+                             "split_1_4": 0.5, "split_3_6": 0.5, "split_12_15": 0.5, "split_22_25": 0.5, "split_24_27": 0.5, "split_26_29": 0.5, "split_32_35": 0.5
+                           };
                            setPlateaus(p => { const n = [...p]; n[activeIndex] = bets; return n; });
                          }},
                          { name: "Safety 32", proba: "86.5%", desc: "Le Grinder (+0.50€)", action: () => {
