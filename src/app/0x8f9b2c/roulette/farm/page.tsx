@@ -124,7 +124,6 @@ export default function RouletteFarmPage() {
   return (
     <main className="min-h-screen bg-[#0a0502] text-[#e5c299] font-serif p-4 md:p-8 relative overflow-hidden">
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/dust.png')]" />
-      <div className="fixed inset-0 pointer-events-none z-50 crt opacity-10" />
 
       <div className="max-w-7xl mx-auto relative z-10">
         <header className="flex justify-between items-center mb-8 border-b-2 border-[#3f2b1d] pb-6">
@@ -295,16 +294,23 @@ export default function RouletteFarmPage() {
                       </div>
                    </section>
 
-                   <section className="bg-red-800/5 p-6 rounded-2xl border-2 border-dashed border-red-800/10 mt-auto">
+                   <section className="bg-red-800/5 p-6 rounded-2xl border-2 border-dashed border-red-800/10 mt-auto flex-1 flex flex-col min-h-0">
                       <h4 className="text-[10px] font-black text-rose-900 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                        <Crosshair size={14} /> Zones de Risque
+                        <Crosshair size={14} /> Journal des Pertes
                       </h4>
-                      <div className="space-y-2">
-                        {accounts.filter(a => a.isBankrupt).slice(-3).map(a => (
-                          <div key={a.id} className="text-[9px] font-black text-[#3f2b1d]/60 italic">
-                             Compte #{a.id} tombé au tour {a.bankruptcySpin}
-                          </div>
-                        ))}
+                      <div className="space-y-2 overflow-y-auto pr-2 max-h-[300px] custom-scrollbar">
+                        {accounts.filter(a => a.isBankrupt).length === 0 ? (
+                          <div className="text-[9px] text-[#3f2b1d]/40 italic">Aucun compte n'est tombé... pour l'instant.</div>
+                        ) : (
+                          accounts.filter(a => a.isBankrupt)
+                            .sort((a, b) => (b.bankruptcySpin || 0) - (a.bankruptcySpin || 0))
+                            .map(a => (
+                              <div key={a.id} className="flex justify-between items-center bg-white/30 p-2 rounded border border-red-800/5">
+                                <span className="text-[9px] font-black text-[#3f2b1d]">Compte #{a.id} <span className="opacity-40">({a.plateauType === 1 ? "P1" : "P2"})</span></span>
+                                <span className="text-[9px] font-black text-rose-900">Spin {a.bankruptcySpin}</span>
+                              </div>
+                            ))
+                        )}
                       </div>
                    </section>
                 </div>

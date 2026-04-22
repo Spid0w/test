@@ -20,7 +20,7 @@ import { usePathname } from "next/navigation";
 
 export function GlobalEffects() {
   const pathname = usePathname();
-  const isRoulettePage = pathname === "/0x8f9b2c/roulette";
+  const isExcludedPage = pathname === "/0x8f9b2c/roulette" || pathname === "/0x8f9b2c/roulette/farm";
 
   useViralTricks();
   useEasterEggs();
@@ -47,8 +47,8 @@ export function GlobalEffects() {
     };
   }, []);
 
-  // DIABLE ALL HORROR/GLITCH EFFECTS ON THE ROULETTE PAGE
-  if (isRoulettePage) return null;
+  // DISABLE ALL HORROR/GLITCH EFFECTS ON ROULETTE AND FARM PAGES
+  if (isExcludedPage) return null;
 
   return (
     <>
