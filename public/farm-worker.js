@@ -17,12 +17,9 @@ function calculateWinLogic(result, bets) {
   Object.entries(bets).forEach(([betId, amount]) => {
     if (!isNaN(parseInt(betId))) {
       if (parseInt(betId) === result) totalWin += amount * 36;
-    } else if (betId.startsWith("split_")) {
+    } else if (betId.startsWith("split_") || betId.startsWith("corner_") || betId.startsWith("nums_")) {
       const nums = betId.split("_").slice(1).map(Number);
-      if (nums.includes(result)) totalWin += amount * 18;
-    } else if (betId.startsWith("corner_")) {
-      const nums = betId.split("_").slice(1).map(Number);
-      if (nums.includes(result)) totalWin += amount * 9;
+      if (nums.includes(result)) totalWin += amount * (36 / nums.length);
     } else if (betId === "doz1" && result >= 1 && result <= 12) totalWin += amount * 3;
     else if (betId === "doz2" && result >= 13 && result <= 24) totalWin += amount * 3;
     else if (betId === "doz3" && result >= 25 && result <= 36) totalWin += amount * 3;
@@ -37,13 +34,8 @@ function calculateWinLogic(result, bets) {
     else if (betId === "high" && result >= 19 && result <= 36) totalWin += amount * 2;
   });
 
-  let finalWin = totalWin;
-  if (result === 0 && totalWin < (totalBet * 35)) {
-    const refund = (totalBet - (bets["0"] || 0)) * 0.5;
-    if (refund > 0) finalWin += refund;
-  }
-
-  return finalWin;
+  // The 50% refund on even money bets for 0 is removed as requested.
+  return totalWin;
 }
 
 function runSpin() {

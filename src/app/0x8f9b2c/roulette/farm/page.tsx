@@ -210,9 +210,43 @@ export default function RouletteFarmPage() {
                   </div>
                   <RouletteBoard onPlaceBet={handlePlaceBet} activeBets={activePlateau === 1 ? plateau1Bets : plateau2Bets} currentChip={currentChip} isEraserMode={false} />
                   <div className="mt-8 flex justify-center gap-4">
-                    {[1, 5, 10, 20].map(val => (
+                    {[0.5, 1, 5, 10, 20].map(val => (
                       <button key={val} onClick={() => setCurrentChip(val)} className={`w-14 h-14 rounded-full border-4 border-dashed flex items-center justify-center font-black transition-all ${currentChip === val ? "scale-110 border-white bg-black z-10" : "border-[#3f2b1d] opacity-40"}`}>{val}€</button>
                     ))}
+                  </div>
+
+                  <div className="mt-10 border-t-2 border-[#3f2b1d] pt-8">
+                    <h3 className="text-sm font-black text-[#8b4513] uppercase tracking-widest mb-6 flex items-center gap-2 italic">
+                       <Database size={16} /> Setups Préfait (Pro)
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                       {[
+                         { name: "Romanovsky", proba: "86.5%", desc: "Couverture massive", action: () => {
+                           const bets = { "doz1": 3, "doz2": 3, "corner_25_26_28_29": 1, "corner_32_33_35_36": 1 };
+                           activePlateau === 1 ? setPlateau1Bets(bets) : setPlateau2Bets(bets);
+                         }},
+                         { name: "James Bond", proba: "67.6%", desc: "Mixte 0/Ligne/Passe", action: () => {
+                           const bets = { "high": 14, "nums_13_14_15_16_17_18": 5, "0": 1 }; // Using nums_ for the six-line
+                           activePlateau === 1 ? setPlateau1Bets(bets) : setPlateau2Bets(bets);
+                         }},
+                         { name: "666 Strategy", proba: "89.2%", desc: "Presque toute la table", action: () => {
+                           const bets: Record<string, number> = { "red": 36, "split_0_2": 4, "split_8_11": 4, "split_10_13": 4, "split_17_20": 4, "split_26_29": 4, "split_28_31": 4, "4": 2, "6": 2, "15": 2, "22": 2, "24": 2, "33": 2, "35": 2 };
+                           activePlateau === 1 ? setPlateau1Bets(bets) : setPlateau2Bets(bets);
+                         }},
+                         { name: "Red Warrior", proba: "48.6%", desc: "Focus Rouge pur", action: () => {
+                           const bets = { "red": 10 };
+                           activePlateau === 1 ? setPlateau1Bets(bets) : setPlateau2Bets(bets);
+                         }}
+                       ].map(preset => (
+                         <button key={preset.name} onClick={preset.action} className="bg-black/40 border-2 border-[#3f2b1d] p-4 rounded-2xl hover:border-[#d4af37] transition-all text-left flex flex-col gap-1 group">
+                             <div className="flex justify-between items-center text-[#d4af37] font-black text-xs italic group-hover:scale-105 transition-transform">
+                                <span>{preset.name}</span>
+                                <span className="bg-[#d4af37] text-black px-1.5 py-0.5 rounded text-[8px] not-italic">{preset.proba}</span>
+                             </div>
+                             <div className="text-[10px] text-[#5c4033] font-bold uppercase truncate">{preset.desc}</div>
+                         </button>
+                       ))}
+                    </div>
                   </div>
               </div>
             </section>
