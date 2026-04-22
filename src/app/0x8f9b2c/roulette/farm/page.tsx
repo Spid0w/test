@@ -230,11 +230,15 @@ export default function RouletteFarmPage() {
                     </h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                        {[
-                         { name: "Romanovsky", action: () => {
-                           const bets = { "doz1": 1.5, "doz2": 1.5, "corner_25_26_28_29": 0.5, "corner_32_33_35_36": 0.5 };
+                         { name: "Safety 32", action: () => {
+                           const bets = { "doz1": 1.5, "doz2": 1.5, "corner_26_25_29_28": 0.5, "corner_33_32_36_35": 0.5 };
                            setPlateaus(p => { const n = [...p]; n[activeIndex] = bets; return n; });
                          }},
-                         { name: "James Bond", action: () => {
+                         { name: "Jackpot Cols", action: () => {
+                           const bets = { "col1": 4.5, "col3": 4.5, "0": 0.5, "5": 0.5, "11": 0.5, "17": 0.5, "23": 0.5, "29": 0.5, "35": 0.5 };
+                           setPlateaus(p => { const n = [...p]; n[activeIndex] = bets; return n; });
+                         }},
+                         { name: "Snake Bet", action: () => {
                            const bets = { "high": 7.5, "nums_13_14_15_16_17_18": 2.5, "0": 0.5 }; 
                            setPlateaus(p => { const n = [...p]; n[activeIndex] = bets; return n; });
                          }},

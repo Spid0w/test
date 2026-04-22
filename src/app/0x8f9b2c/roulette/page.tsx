@@ -276,6 +276,7 @@ export default function RoulettePage() {
     { name: "666 Strategy", action: () => applyPreset({ "red": 9, "split_0_2": 1, "split_8_11": 1, "split_10_13": 1, "split_17_20": 1, "split_26_29": 1, "split_28_31": 1, "4": 0.5, "6": 0.5, "15": 0.5, "22": 0.5, "24": 0.5, "33": 0.5, "35": 0.5 }) },
     { name: "Safety 32", action: () => applyPreset({ "doz1": 1.5, "doz2": 1.5, "corner_26_25_29_28": 0.5, "corner_33_32_36_35": 0.5 }) },
     { name: "Snake Bet", action: () => applyPreset({ "1": 0.5, "5": 0.5, "9": 0.5, "12": 0.5, "14": 0.5, "16": 0.5, "19": 0.5, "23": 0.5, "27": 0.5, "30": 0.5, "32": 0.5, "34": 0.5 }) },
+    { name: "Jackpot Cols", action: () => applyPreset({ "col1": 4.5, "col3": 4.5, "0": 0.5, "5": 0.5, "11": 0.5, "17": 0.5, "23": 0.5, "29": 0.5, "35": 0.5 }) },
     { name: "Col Grinder", action: () => applyPreset({ "red": 5, "col2": 5 }) },
     { name: "Red Warrior", action: () => applyPreset({ "red": 5 }) },
   ];
