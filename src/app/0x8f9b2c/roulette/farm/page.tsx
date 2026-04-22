@@ -234,7 +234,17 @@ export default function RouletteFarmPage() {
                            activePlateau === 1 ? setPlateau1Bets(bets) : setPlateau2Bets(bets);
                          }},
                          { name: "666 Strategy", proba: "89.2%", desc: "Presque toute la table", action: () => {
-                           const bets: Record<string, number> = { "red": 18, "split_0_2": 2, "split_8_11": 2, "split_10_13": 2, "split_17_20": 2, "split_26_29": 2, "split_28_31": 2, "4": 1, "6": 1, "15": 1, "22": 1, "24": 1, "33": 1, "35": 1 };
+                           const bets: Record<string, number> = { "red": 9, "split_0_2": 1, "split_8_11": 1, "split_10_13": 1, "split_17_20": 1, "split_26_29": 1, "split_28_31": 1, "4": 0.5, "6": 0.5, "15": 0.5, "22": 0.5, "24": 0.5, "33": 0.5, "35": 0.5 };
+                           activePlateau === 1 ? setPlateau1Bets(bets) : setPlateau2Bets(bets);
+                         }},
+                         { name: "Setup Perso", proba: "81.1%", desc: "Le pattern d'Ethan", action: () => {
+                           const bets: Record<string, number> = { 
+                             "corner_1_2_4_5": 0.5, "corner_2_3_5_6": 0.5, 
+                             "corner_7_8_10_11": 0.5, "corner_8_9_11_12": 0.5, 
+                             "corner_13_14_16_17": 0.5, "corner_14_15_17_18": 0.5, 
+                             "corner_25_26_28_29": 0.5, "corner_26_27_29_30": 0.5, 
+                             "corner_32_33_35_36": 0.5, "col2": 0.5 
+                           };
                            activePlateau === 1 ? setPlateau1Bets(bets) : setPlateau2Bets(bets);
                          }},
                          { name: "Red Warrior", proba: "48.6%", desc: "Focus Rouge pur", action: () => {
