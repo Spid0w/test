@@ -278,32 +278,57 @@ export default function RouletteFarmPage() {
                          </button>
                        ))}
                     </div>
+
+                    <div className="mt-8 p-6 bg-gradient-to-r from-orange-950/40 to-red-950/40 border-2 border-red-900/30 rounded-2xl flex items-center justify-between shadow-2xl relative overflow-hidden group">
+                       <div className="absolute top-0 right-0 p-4 opacity-5 rotate-12 group-hover:scale-150 transition-transform duration-1000"><Trophy size={80} /></div>
+                       <div>
+                          <h4 className="text-sm font-extrabold italic text-orange-500 uppercase tracking-tighter mb-1 flex items-center gap-2">
+                             <Trophy size={16} /> CHALLENGE : PARCOURS DU COMBATTANT
+                          </h4>
+                          <p className="text-[9px] text-orange-900/60 font-bold uppercase tracking-widest leading-relaxed">
+                             Progression auto (Rouge ➜ Doz 1/3 ➜ Col 1/3 ➜ Impair)<br/>
+                             Objectif : Finir l'étape 4 pour un gain x7.
+                          </p>
+                       </div>
+                       <button onClick={() => {
+                         if (isRunning) return;
+                         const initialAccounts: Account[] = Array.from({ length: accountCount }, (_, i) => ({
+                           id: i + 1,
+                           balance: startingBalance,
+                           plateauIdx: 0,
+                           maxBalance: startingBalance,
+                           minBalance: startingBalance,
+                           isBankrupt: false,
+                           //@ts-ignore
+                           strategyType: 'combattant',
+                           currentStep: 1
+                         }));
+                         setAccounts(initialAccounts);
+                         setIsRunning(true);
+                         workerRef.current?.postMessage({
+                           action: "start",
+                           payload: { accounts: initialAccounts, totalSpins: totalSpinsTarget, plateaus: [{}], delay: simSpeed }
+                         });
+                       }} className="bg-orange-600 text-white px-6 py-3 rounded-xl font-black text-xs hover:bg-orange-500 shadow-[0_0_20px_rgba(234,88,12,0.3)] hover:scale-105 transition-all uppercase italic">
+                         Lancer Challenge
+                       </button>
+                    </div>
                   </div>
               </div>
             </section>
 
             {accounts.length > 0 && (
               <section className="bg-[#1b110a] border-4 border-[#3f2b1d] p-8 rounded-3xl relative">
-                <div className="flex justify-between items-center mb-8">
-                  <div className="flex items-center gap-4">
-                     <div className="bg-black/60 p-4 rounded-2xl border-2 border-[#d4af37]/20 flex flex-col items-center min-w-[80px]">
-                        <span className="text-[8px] uppercase font-black opacity-40">Tour</span>
-                        <span className="text-3xl font-black text-white">{currentSpinIdx}</span>
-                     </div>
-                  </div>
-                  <div className="flex items-center gap-6">
-                     <div className="text-right">
-                        <div className="text-[10px] uppercase font-black text-emerald-500">Solde Total</div>
-                        <div className="text-2xl font-black text-white">{stats.totalBalance.toFixed(2)}€</div>
-                     </div>
-                  </div>
-                </div>
-
+                {/* ... */}
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                    {accounts.map(acc => (
                      <div key={acc.id} className={`p-4 rounded-2xl border-2 transition-all ${acc.isBankrupt ? "bg-red-950/20 border-red-950 opacity-40 grayscale" : "bg-black/40 border-[#3f2b1d]"}`}>
                         <div className="flex justify-between items-start mb-2">
-                           <span className="text-[8px] font-black uppercase text-[#8b4513]">#{acc.id} <span className="opacity-40">| P{acc.plateauIdx + 1}</span></span>
+                           <span className="text-[8px] font-black uppercase text-[#8b4513]">
+                             #{acc.id} 
+                             {/* @ts-ignore */}
+                             {acc.strategyType === 'combattant' ? <span className="text-orange-500 ml-1">| ETAPE {acc.currentStep || 1}</span> : <span className="opacity-40 ml-1">| P{acc.plateauIdx + 1}</span>}
+                           </span>
                         </div>
                         <div className="text-lg font-black text-white">{acc.balance.toFixed(2)}€</div>
                      </div>

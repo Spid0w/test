@@ -280,6 +280,29 @@ export default function RoulettePage() {
     }) },
   ];
 
+  const getCombattantStep = () => {
+    if (sessionHistory.length === 0) return 1;
+    const last = sessionHistory[0];
+    if (last.net <= 0) return 1;
+    
+    // Detect previous step
+    const b = last.totalBet;
+    if (b === 10) return 2; // Was step 1 (10e Red)
+    if (b === 20) return 3; // Was step 2 (20e Doz)
+    if (b === 30) return 4; // Was step 3 (30e Col)
+    return 1;
+  };
+
+  const applyCombattant = () => {
+    const step = getCombattantStep();
+    let bets = {};
+    if (step === 1) bets = { "red": 10 };
+    else if (step === 2) bets = { "doz1": 10, "doz3": 10 };
+    else if (step === 3) bets = { "col1": 15, "col3": 15 };
+    else if (step === 4) bets = { "odd": 35 };
+    applyPreset(bets);
+  };
+
   return (
     <main className="min-h-screen bg-[#0a0502] text-[#e5c299] font-serif p-4 md:p-6 lg:p-8 relative overflow-hidden">
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/dust.png')]" />
@@ -401,6 +424,17 @@ export default function RoulettePage() {
                     </button>
                   ))}
                </div>
+
+               <button onClick={applyCombattant} className="w-full mt-4 p-3 bg-gradient-to-r from-orange-950 to-red-950 border-2 border-orange-500/30 rounded-xl flex items-center justify-between group hover:border-orange-500 transition-all shadow-xl">
+                  <div className="flex items-center gap-3">
+                     <div className="bg-orange-500 p-2 rounded-lg text-black group-hover:scale-110 transition-transform"><Trophy size={14} /></div>
+                     <div className="text-left">
+                        <div className="text-[10px] font-black text-orange-500 uppercase italic">Challenge Combattant</div>
+                        <div className="text-[8px] text-orange-900 font-bold uppercase tracking-widest">Étape {getCombattantStep()} en attente</div>
+                     </div>
+                  </div>
+                  <div className="bg-orange-500/10 px-3 py-1 rounded text-[10px] font-black text-white group-hover:bg-orange-500 group-hover:text-black transition-all">LANCER</div>
+               </button>
             </div>
 
             <div className="grid grid-cols-3 gap-4">

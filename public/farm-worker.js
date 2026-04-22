@@ -36,6 +36,16 @@ function calculateWinLogic(result, bets) {
   return totalWin;
 }
 
+function getCombattantBets(step) {
+  switch(step) {
+    case 1: return { "red": 10 };
+    case 2: return { "doz1": 10, "doz3": 10 };
+    case 3: return { "col1": 15, "col3": 15 };
+    case 4: return { "odd": 35 };
+    default: return { "red": 10 };
+  }
+}
+
 function runSpin() {
   if (!isRunning || currentSpins >= totalSpinsTarget) {
     isRunning = false;
@@ -48,14 +58,27 @@ function runSpin() {
   accounts.forEach(acc => {
     if (acc.isBankrupt) return;
 
-    // acc.plateauIdx is 0-indexed
-    const bets = plateaus[acc.plateauIdx] || {};
+    let bets = (acc.strategyType === "combattant") 
+        ? getCombattantBets(acc.currentStep || 1)
+        : (plateaus[acc.plateauIdx] || {});
+        
     const totalBet = Object.values(bets).reduce((a, b) => a + b, 0);
 
     if (acc.balance < totalBet) {
-      acc.isBankrupt = true;
-      acc.bankruptcySpin = currentSpins - 1;
-      return;
+      if (acc.strategyType === "combattant") {
+        acc.currentStep = 1; // Try to restart at step 1
+        bets = getCombattantBets(1);
+        const retryBet = Object.values(bets).reduce((a, b) => a + b, 0);
+        if (acc.balance < retryBet) {
+          acc.isBankrupt = true;
+          acc.bankruptcySpin = currentSpins - 1;
+          return;
+        }
+      } else {
+        acc.isBankrupt = true;
+        acc.bankruptcySpin = currentSpins - 1;
+        return;
+      }
     }
 
     acc.balance -= totalBet;
@@ -64,6 +87,16 @@ function runSpin() {
     acc.balance += win;
     acc.lastResult = result;
     acc.lastWin = win;
+
+    // Progression logic
+    if (acc.strategyType === "combattant") {
+      if (win > 0) {
+        acc.currentStep = (acc.currentStep || 1) + 1;
+        if (acc.currentStep > 4) acc.currentStep = 1; // Completed a course!
+      } else {
+        acc.currentStep = 1; // Failed, restart
+      }
+    }
 
     if (acc.balance > acc.maxBalance) acc.maxBalance = acc.balance;
     if (acc.balance < acc.minBalance) acc.minBalance = acc.balance;
