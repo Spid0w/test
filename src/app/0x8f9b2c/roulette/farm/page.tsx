@@ -116,6 +116,10 @@ export default function RouletteFarmPage() {
 
   const avgBankruptcySpin = stats.bankruptCount > 0 ? (stats.totalBankruptcySpins / stats.bankruptCount).toFixed(1) : "N/A";
 
+  const winningCount = accounts.filter(a => a.balance > startingBalance).length;
+  const losingCount = accounts.filter(a => a.balance < startingBalance).length;
+  const breakEvenCount = accounts.filter(a => a.balance === startingBalance).length;
+
   const plateau1Count = accounts.filter(a => a.plateauType === 1).length;
   const plateau2Count = accounts.filter(a => a.plateauType === 2).length;
   const plateau1Profit = accounts.filter(a => a.plateauType === 1).reduce((sum, a) => sum + (a.balance - startingBalance), 0);
@@ -309,6 +313,14 @@ export default function RouletteFarmPage() {
                       <h4 className="text-xs font-black uppercase tracking-widest text-[#3f2b1d]/60 mb-4 divider">Statistiques de Simulation</h4>
                       
                       <div className="space-y-4">
+                         <div className="flex justify-between items-center bg-white/40 p-4 rounded-xl border border-[#3f2b1d]/10">
+                            <span className="text-[10px] font-black uppercase text-[#8b4513]">Comptes Gagnants</span>
+                            <span className="text-xl font-black text-emerald-700">{winningCount}</span>
+                         </div>
+                         <div className="flex justify-between items-center bg-white/40 p-4 rounded-xl border border-[#3f2b1d]/10">
+                            <span className="text-[10px] font-black uppercase text-[#8b4513]">Comptes Perdants</span>
+                            <span className="text-xl font-black text-rose-700">{losingCount}</span>
+                         </div>
                          <div className="flex justify-between items-center bg-white/40 p-4 rounded-xl border border-[#3f2b1d]/10">
                             <span className="text-[10px] font-black uppercase text-[#8b4513]">Survie Moyenne</span>
                             <span className="text-xl font-black text-[#3f2b1d]">{avgBankruptcySpin} tours</span>
