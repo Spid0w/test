@@ -247,6 +247,18 @@ export default function RouletteFarmPage() {
                            };
                            activePlateau === 1 ? setPlateau1Bets(bets) : setPlateau2Bets(bets);
                          }},
+                         { name: "Safety 32", proba: "86.5%", desc: "Le Grinder (+0.50€)", action: () => {
+                           const bets: Record<string, number> = { "doz1": 1.5, "doz2": 1.5, "corner_25_26_28_29": 0.5, "corner_32_33_35_36": 0.5 };
+                           activePlateau === 1 ? setPlateau1Bets(bets) : setPlateau2Bets(bets);
+                         }},
+                         { name: "Snake Bet", proba: "32.4%", desc: "Le Serpent Rouge", action: () => {
+                           const bets: Record<string, number> = { "1": 0.5, "5": 0.5, "9": 0.5, "12": 0.5, "14": 0.5, "16": 0.5, "19": 0.5, "23": 0.5, "27": 0.5, "30": 0.5, "32": 0.5, "34": 0.5 };
+                           activePlateau === 1 ? setPlateau1Bets(bets) : setPlateau2Bets(bets);
+                         }},
+                         { name: "Column Grinder", proba: "70.3%", desc: "Mixte Rouge/Col 2", action: () => {
+                           const bets: Record<string, number> = { "red": 5, "col2": 5 };
+                           activePlateau === 1 ? setPlateau1Bets(bets) : setPlateau2Bets(bets);
+                         }},
                          { name: "Red Warrior", proba: "48.6%", desc: "Focus Rouge pur", action: () => {
                            const bets = { "red": 5 };
                            activePlateau === 1 ? setPlateau1Bets(bets) : setPlateau2Bets(bets);
