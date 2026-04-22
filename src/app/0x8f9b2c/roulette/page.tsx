@@ -7,7 +7,8 @@ import { RouletteBoard } from "@/components/casino/RouletteBoard";
 import { Coins, Trophy, History, ArrowLeft, RefreshCw, Eraser, TrendingUp, RotateCcw, Play, Square, ListOrdered, Lock, Wallet, ShieldAlert, Plus, Minus, Power, PowerOff, Flame, Snowflake, BarChart3 } from "lucide-react";
 import Link from "next/link";
 
-const REDS = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
+import { REDS, calculateWin } from "@/lib/roulette-utils";
+
 const CHIP_VALUES = [0.5, 1, 5, 10, 20];
 
 interface SessionRound {
@@ -119,42 +120,9 @@ export default function RoulettePage() {
   const functionsRef = useRef({ resolveBetsRaw: (r: number) => {}, startSpinRaw: () => {} });
 
   const resolveBetsRaw = useCallback((result: number) => {
-    let totalWin = 0;
     const currentBets = stateRef.current.activeBets;
     const totalBet = Object.values(currentBets).reduce((a, b) => a + b, 0);
-    const isResultRed = REDS.includes(result);
-    const isResultEven = result !== 0 && result % 2 === 0;
-
-    Object.entries(currentBets).forEach(([betId, amount]) => {
-      if (!isNaN(parseInt(betId))) { if (parseInt(betId) === result) totalWin += amount * 36; }
-      else if (betId.startsWith("split_")) {
-        const nums = betId.split("_").slice(1).map(Number);
-        if (nums.includes(result)) totalWin += amount * 18;
-      }
-      else if (betId.startsWith("corner_")) {
-        const nums = betId.split("_").slice(1).map(Number);
-        if (nums.includes(result)) totalWin += amount * 9;
-      }
-      else if (betId === "doz1" && result >= 1 && result <= 12) totalWin += amount * 3;
-      else if (betId === "doz2" && result >= 13 && result <= 24) totalWin += amount * 3;
-      else if (betId === "doz3" && result >= 25 && result <= 36) totalWin += amount * 3;
-      else if (betId === "col1" && result !== 0 && (result - 1) % 3 === 0) totalWin += amount * 3;
-      else if (betId === "col2" && result !== 0 && (result - 2) % 3 === 0) totalWin += amount * 3;
-      else if (betId === "col3" && result !== 0 && result % 3 === 0) totalWin += amount * 3;
-      else if (betId === "red" && isResultRed) totalWin += amount * 2;
-      else if (betId === "black" && !isResultRed && result !== 0) totalWin += amount * 2;
-      else if (betId === "even" && isResultEven) totalWin += amount * 2;
-      else if (betId === "odd" && !isResultEven && result !== 0) totalWin += amount * 2;
-      else if (betId === "low" && result >= 1 && result <= 18) totalWin += amount * 2;
-      else if (betId === "high" && result >= 19 && result <= 36) totalWin += amount * 2;
-    });
-
-    let finalWin = totalWin;
-    let isPartage = false;
-    if (result === 0 && totalWin < (totalBet * 35)) {
-      const refund = (totalBet - (currentBets["0"] || 0)) * 0.5;
-      if (refund > 0) { finalWin += refund; isPartage = true; }
-    }
+    const { totalWin, isPartage, finalWin } = calculateWin(result, currentBets);
 
     const nextBalance = (stateRef.current.balance || 0) + finalWin;
     setBalance(nextBalance);
@@ -309,6 +277,10 @@ export default function RoulettePage() {
                 </div>
              </div>
              <div className="flex gap-2">
+                <Link href="/0x8f9b2c/roulette/farm" className="flex items-center gap-2 bg-[#1b110a] px-3 py-1.5 rounded border border-[#d4af37]/30 hover:bg-[#3f2b1d] text-xs md:text-sm shadow-md transition-all hover:scale-105">
+                   <Database size={16} className="text-[#d4af37]" />
+                   <span className="hidden sm:inline italic">FARM</span>
+                </Link>
                 <button onClick={() => { setShowHistory(!showHistory); setShowLeaderboard(false); }} className="flex items-center gap-2 bg-[#1b110a] px-3 py-1.5 rounded border border-[#d4af37]/30 hover:bg-[#3f2b1d] text-xs md:text-sm shadow-md"><History size={16} className="text-[#d4af37]" /><span className="hidden sm:inline italic">LOGS</span></button>
                 <button onClick={() => { setShowLeaderboard(!showLeaderboard); setShowHistory(false); }} className="flex items-center gap-2 bg-[#1b110a] px-3 py-1.5 rounded border border-[#d4af37]/30 hover:bg-[#3f2b1d] text-xs md:text-sm shadow-md"><Trophy size={16} className="text-[#d4af37]" /><span className="hidden sm:inline italic">RECORDS</span></button>
                 <div className="bg-black border-2 border-[#d4af37] px-4 py-1.5 rounded-full flex items-center gap-2 shadow-[0_0_30px_rgba(212,175,55,0.15)]"><Coins size={18} className="text-[#d4af37]" /><span className="text-lg md:text-2xl font-black text-white">{balance !== null ? balance.toFixed(2) : "0.00"}€</span></div>
