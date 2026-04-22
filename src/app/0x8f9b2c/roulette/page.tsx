@@ -264,21 +264,20 @@ export default function RoulettePage() {
   };
 
   const PRESETS = [
-    { name: "Romanovsky", action: () => applyPreset({ "doz1": 1.5, "doz2": 1.5, "corner_25_26_28_29": 0.5, "corner_32_33_35_36": 0.5 }) },
-    { name: "James Bond", action: () => applyPreset({ "high": 7.5, "nums_13_14_15_16_17_18": 2.5, "0": 0.5 }) },
-    { name: "Setup Perso", action: () => applyPreset({ 
+    { name: "Romanovsky", proba: "86.5%", desc: "Couverture massive", action: () => applyPreset({ "doz1": 1.5, "doz2": 1.5, "corner_2_1_5_4": 0.5, "corner_33_32_36_35": 0.5 }) },
+    { name: "James Bond", proba: "67.6%", desc: "Mixte 0/Ligne/Passe", action: () => applyPreset({ "high": 7.5, "nums_13_14_15_16_17_18": 2.5, "0": 0.5 }) },
+    { name: "666 Strategy", proba: "89.2%", desc: "Presque toute la table", action: () => applyPreset({ "red": 9, "split_0_2": 1, "split_8_11": 1, "split_10_13": 1, "split_17_20": 1, "split_26_29": 1, "split_28_31": 1, "4": 0.5, "6": 0.5, "15": 0.5, "22": 0.5, "24": 0.5, "33": 0.5, "35": 0.5 }) },
+    { name: "Safety 32", proba: "86.5%", desc: "Le Grinder (+0.50€)", action: () => applyPreset({ "doz1": 1.5, "doz2": 1.5, "corner_26_25_29_28": 0.5, "corner_33_32_36_35": 0.5 }) },
+    { name: "Snake Bet", proba: "32.4%", desc: "Le Serpent Rouge", action: () => applyPreset({ "1": 0.5, "5": 0.5, "9": 0.5, "12": 0.5, "14": 0.5, "16": 0.5, "19": 0.5, "23": 0.5, "27": 0.5, "30": 0.5, "32": 0.5, "34": 0.5 }) },
+    { name: "Jackpot Cols", proba: "83.8%", desc: "Mises 1-3 + Pleins", action: () => applyPreset({ "col1": 4.5, "col3": 4.5, "0": 0.5, "5": 0.5, "11": 0.5, "17": 0.5, "23": 0.5, "29": 0.5, "35": 0.5 }) },
+    { name: "Col Grinder", proba: "70.3%", desc: "Mixte Rouge/Col 2", action: () => applyPreset({ "red": 5, "col2": 5 }) },
+    { name: "Setup Perso", proba: "81.1%", desc: "Le pattern d'Ethan", action: () => applyPreset({ 
         "corner_2_1_5_4": 0.5, "corner_3_2_6_5": 0.5, 
         "corner_8_7_11_10": 0.5, "corner_9_8_12_11": 0.5, 
         "corner_14_13_17_16": 0.5, "corner_15_14_18_17": 0.5, 
         "corner_26_25_29_28": 0.5, "corner_27_26_30_29": 0.5, 
         "corner_33_32_36_35": 0.5, "col2": 0.5 
     }) },
-    { name: "666 Strategy", action: () => applyPreset({ "red": 9, "split_0_2": 1, "split_8_11": 1, "split_10_13": 1, "split_17_20": 1, "split_26_29": 1, "split_28_31": 1, "4": 0.5, "6": 0.5, "15": 0.5, "22": 0.5, "24": 0.5, "33": 0.5, "35": 0.5 }) },
-    { name: "Safety 32", action: () => applyPreset({ "doz1": 1.5, "doz2": 1.5, "corner_26_25_29_28": 0.5, "corner_33_32_36_35": 0.5 }) },
-    { name: "Snake Bet", action: () => applyPreset({ "1": 0.5, "5": 0.5, "9": 0.5, "12": 0.5, "14": 0.5, "16": 0.5, "19": 0.5, "23": 0.5, "27": 0.5, "30": 0.5, "32": 0.5, "34": 0.5 }) },
-    { name: "Jackpot Cols", action: () => applyPreset({ "col1": 4.5, "col3": 4.5, "0": 0.5, "5": 0.5, "11": 0.5, "17": 0.5, "23": 0.5, "29": 0.5, "35": 0.5 }) },
-    { name: "Col Grinder", action: () => applyPreset({ "red": 5, "col2": 5 }) },
-    { name: "Red Warrior", action: () => applyPreset({ "red": 5 }) },
   ];
 
   return (
