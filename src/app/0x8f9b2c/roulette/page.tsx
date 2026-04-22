@@ -123,6 +123,7 @@ export default function RoulettePage() {
     const currentBets = stateRef.current.activeBets;
     const totalBet = Object.values(currentBets).reduce((a, b) => a + b, 0);
     const { totalWin, isPartage, finalWin } = calculateWin(result, currentBets);
+    const isResultRed = REDS.includes(result);
 
     const nextBalance = (stateRef.current.balance || 0) + finalWin;
     setBalance(nextBalance);
