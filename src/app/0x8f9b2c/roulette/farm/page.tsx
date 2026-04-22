@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Play, Square, Settings2, Layout, Database, History, Coins, AlertTriangle, Crosshair, Users, RotateCcw, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Play, Square, Settings2, Layout, Database, History, Coins, AlertTriangle, Crosshair, Users, RotateCcw, Plus, Trash2, Trophy } from "lucide-react";
 import Link from "next/link";
 import { RouletteBoard } from "@/components/casino/RouletteBoard";
 
