@@ -251,6 +251,35 @@ export default function RoulettePage() {
     return { total, hot, cold, red, black, green };
   })();
 
+  const applyPreset = (bets: Record<string, number>) => {
+    if (isSpinning || balance === null) return;
+    const totalBet = Object.values(bets).reduce((a, b) => a + b, 0);
+    const currentOnBoard = Object.values(activeBets).reduce((a, b) => a + b, 0);
+    if (totalBet > (balance + currentOnBoard)) { setMessage("PAS ASSEZ D'OR"); return; }
+    if (totalBet > 50) { setMessage("LIMITE 50€ DÉPASSÉE"); return; }
+    
+    setBalance(prev => (prev !== null ? prev + currentOnBoard - totalBet : prev));
+    setActiveBets(bets);
+    setMessage("SETUP APPLIQUÉ");
+  };
+
+  const PRESETS = [
+    { name: "Romanovsky", action: () => applyPreset({ "doz1": 1.5, "doz2": 1.5, "corner_25_26_28_29": 0.5, "corner_32_33_35_36": 0.5 }) },
+    { name: "James Bond", action: () => applyPreset({ "high": 7.5, "nums_13_14_15_16_17_18": 2.5, "0": 0.5 }) },
+    { name: "Setup Perso", action: () => applyPreset({ 
+        "corner_2_1_5_4": 0.5, "corner_3_2_6_5": 0.5, 
+        "corner_8_7_11_10": 0.5, "corner_9_8_12_11": 0.5, 
+        "corner_14_13_17_16": 0.5, "corner_15_14_18_17": 0.5, 
+        "corner_26_25_29_28": 0.5, "corner_27_26_30_29": 0.5, 
+        "corner_33_32_36_35": 0.5, "col2": 0.5 
+    }) },
+    { name: "666 Strategy", action: () => applyPreset({ "red": 9, "split_0_2": 1, "split_8_11": 1, "split_10_13": 1, "split_17_20": 1, "split_26_29": 1, "split_28_31": 1, "4": 0.5, "6": 0.5, "15": 0.5, "22": 0.5, "24": 0.5, "33": 0.5, "35": 0.5 }) },
+    { name: "Safety 32", action: () => applyPreset({ "doz1": 1.5, "doz2": 1.5, "corner_26_25_29_28": 0.5, "corner_33_32_36_35": 0.5 }) },
+    { name: "Snake Bet", action: () => applyPreset({ "1": 0.5, "5": 0.5, "9": 0.5, "12": 0.5, "14": 0.5, "16": 0.5, "19": 0.5, "23": 0.5, "27": 0.5, "30": 0.5, "32": 0.5, "34": 0.5 }) },
+    { name: "Col Grinder", action: () => applyPreset({ "red": 5, "col2": 5 }) },
+    { name: "Red Warrior", action: () => applyPreset({ "red": 5 }) },
+  ];
+
   return (
     <main className="min-h-screen bg-[#0a0502] text-[#e5c299] font-serif p-4 md:p-6 lg:p-8 relative overflow-hidden">
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/dust.png')]" />
@@ -361,6 +390,19 @@ export default function RoulettePage() {
           {/* GAME BOARD */}
           <div className="flex flex-col gap-6">
             <RouletteBoard onPlaceBet={placeBet} activeBets={activeBets} currentChip={currentChip} isEraserMode={isEraserMode} />
+            
+            {/* PRESETS UI */}
+            <div className="bg-[#1b110a] border-4 border-[#3f2b1d] p-4 rounded-2xl shadow-xl">
+               <div className="text-[9px] uppercase font-black text-[#8b4513] mb-3 flex items-center gap-2 italic tracking-widest"><Database size={12}/> Setups de Mise Rapides</div>
+               <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-2">
+                  {PRESETS.map((preset) => (
+                    <button key={preset.name} onClick={preset.action} className="bg-black/60 border border-[#3f2b1d] py-2 rounded-lg text-[10px] font-black text-[#d4af37] hover:border-[#d4af37] hover:bg-[#3f2b1d] transition-all uppercase italic">
+                       {preset.name}
+                    </button>
+                  ))}
+               </div>
+            </div>
+
             <div className="grid grid-cols-3 gap-4">
                <button onClick={() => { setIsEraserMode(!isEraserMode); setIsAutoMode(false); }} className={`flex items-center justify-center gap-3 py-5 rounded-2xl border-4 transition-all font-black text-sm uppercase italic shadow-xl ${isEraserMode ? "bg-red-950 border-red-500 text-white shadow-[0_0_25px_rgba(255,0,0,0.5)] animate-pulse" : "bg-black/80 border-[#3f2b1d] text-[#8b4513] hover:border-[#d4af37]"}`}><Eraser size={20} /> Gomme</button>
                <button onClick={doubleCurrentBets} disabled={isSpinning || Object.keys(activeBets).length === 0} className="flex items-center justify-center gap-3 py-5 rounded-2xl border-4 bg-black/80 border-[#3f2b1d] text-[#e5c299] font-black text-sm uppercase italic hover:border-[#d4af37] hover:text-[#d4af37] shadow-xl disabled:opacity-20"><TrendingUp size={20} /> Doubler x2</button>
