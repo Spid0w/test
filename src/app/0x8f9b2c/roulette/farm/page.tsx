@@ -246,6 +246,15 @@ export default function RouletteFarmPage() {
                            const bets = { "doz1": 1.5, "doz2": 1.5, "corner_26_25_29_28": 0.5, "corner_33_32_36_35": 0.5 };
                            setPlateaus(p => { const n = [...p]; n[activeIndex] = bets; return n; });
                          }},
+                         { name: "Assurance Zéro", proba: "2.7% Jackpot", desc: "Perte max 0.50€", action: () => {
+                           const bets = { "doz1": 1.5, "doz2": 1.5, "doz3": 1.5, "0": 0.5 };
+                           setPlateaus(p => { const n = [...p]; n[activeIndex] = bets; return n; });
+                         }},
+                         { name: "Muraille 35", proba: "94.6%", desc: "Gagne 0.50€ souvent", action: () => {
+                           const bets: Record<string, number> = {};
+                           for(let i=0; i<=34; i++) bets[i.toString()] = 0.5;
+                           setPlateaus(p => { const n = [...p]; n[activeIndex] = bets; return n; });
+                         }},
                          { name: "Snake Bet", proba: "32.4%", desc: "Le Serpent Rouge", action: () => {
                            const bets = { "1": 0.5, "5": 0.5, "9": 0.5, "12": 0.5, "14": 0.5, "16": 0.5, "19": 0.5, "23": 0.5, "27": 0.5, "30": 0.5, "32": 0.5, "34": 0.5 };
                            setPlateaus(p => { const n = [...p]; n[activeIndex] = bets; return n; });

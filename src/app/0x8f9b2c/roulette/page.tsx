@@ -268,6 +268,12 @@ export default function RoulettePage() {
     { name: "James Bond", proba: "67.6%", desc: "Mixte 0/Ligne/Passe", action: () => applyPreset({ "high": 7.5, "nums_13_14_15_16_17_18": 2.5, "0": 0.5 }) },
     { name: "666 Strategy", proba: "89.2%", desc: "Presque toute la table", action: () => applyPreset({ "red": 9, "split_0_2": 1, "split_8_11": 1, "split_10_13": 1, "split_17_20": 1, "split_26_29": 1, "split_28_31": 1, "4": 0.5, "6": 0.5, "15": 0.5, "22": 0.5, "24": 0.5, "33": 0.5, "35": 0.5 }) },
     { name: "Safety 32", proba: "86.5%", desc: "Le Grinder (+0.50€)", action: () => applyPreset({ "doz1": 1.5, "doz2": 1.5, "corner_26_25_29_28": 0.5, "corner_33_32_36_35": 0.5 }) },
+    { name: "Assurance Zéro", proba: "2.7% Jackpot", desc: "Perte max 0.50€", action: () => applyPreset({ "doz1": 1.5, "doz2": 1.5, "doz3": 1.5, "0": 0.5 }) },
+    { name: "Muraille 35", proba: "94.6%", desc: "Gagne 0.50€ souvent", action: () => {
+      const bets: Record<string, number> = {};
+      for(let i=0; i<=34; i++) bets[i.toString()] = 0.5;
+      applyPreset(bets);
+    }},
     { name: "Snake Bet", proba: "32.4%", desc: "Le Serpent Rouge", action: () => applyPreset({ "1": 0.5, "5": 0.5, "9": 0.5, "12": 0.5, "14": 0.5, "16": 0.5, "19": 0.5, "23": 0.5, "27": 0.5, "30": 0.5, "32": 0.5, "34": 0.5 }) },
     { name: "Jackpot Cols", proba: "83.8%", desc: "Mises 1-3 + Pleins", action: () => applyPreset({ "col1": 4.5, "col3": 4.5, "0": 0.5, "5": 0.5, "11": 0.5, "17": 0.5, "23": 0.5, "29": 0.5, "35": 0.5 }) },
     { name: "Col Grinder", proba: "70.3%", desc: "Mixte Rouge/Col 2", action: () => applyPreset({ "red": 5, "col2": 5 }) },
