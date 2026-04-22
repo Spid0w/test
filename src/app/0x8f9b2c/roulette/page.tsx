@@ -284,9 +284,9 @@ export default function RoulettePage() {
     { name: "Col Grinder", proba: "70.3%", desc: "Mixte Rouge/Col 2", action: () => applyPreset({ "red": 5, "col2": 5 }) },
     { name: "Setup Perso", proba: "81.1%", desc: "Le pattern d'Ethan", action: () => applyPreset({ 
         "corner_2_1_5_4": 0.5, "corner_3_2_6_5": 0.5, 
-        "corner_8_7_11_10": 0.5, "corner_9_8_12_11": 0.5, 
-        "corner_14_13_17_16": 0.5, "corner_15_14_18_17": 0.5, 
-        "corner_26_25_29_28": 0.5, "corner_27_26_30_29": 0.5, 
+        "corner_8_7_11_10": 0.5, "corner_12_11_15_14": 0.5, 
+        "corner_17_16_20_19": 0.5, "corner_18_17_21_20": 0.5, 
+        "corner_27_26_30_29": 0.5, "corner_29_28_32_31": 0.5, 
         "corner_33_32_36_35": 0.5, "col2": 0.5 
     }) },
   ];
