@@ -276,6 +276,7 @@ export default function RoulettePage() {
     }},
     { name: "Snake Bet", proba: "32.4%", desc: "Le Serpent Rouge", action: () => applyPreset({ "1": 0.5, "5": 0.5, "9": 0.5, "12": 0.5, "14": 0.5, "16": 0.5, "19": 0.5, "23": 0.5, "27": 0.5, "30": 0.5, "32": 0.5, "34": 0.5 }) },
     { name: "Jackpot Cols", proba: "83.8%", desc: "Mises 1-3 + Pleins", action: () => applyPreset({ "col1": 4.5, "col3": 4.5, "0": 0.5, "5": 0.5, "11": 0.5, "17": 0.5, "23": 0.5, "29": 0.5, "35": 0.5 }) },
+    { name: "Grinder Fantôme", proba: "75.7% Neutre", desc: "Survie max (Zen)", action: () => applyPreset({ "doz1": 0.5, "doz2": 0.5, "col3": 0.5 }) },
     { name: "Col Grinder", proba: "70.3%", desc: "Mixte Rouge/Col 2", action: () => applyPreset({ "red": 5, "col2": 5 }) },
     { name: "Setup Perso", proba: "81.1%", desc: "Le pattern d'Ethan", action: () => applyPreset({ 
         "corner_2_1_5_4": 0.5, "corner_3_2_6_5": 0.5, 

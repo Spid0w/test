@@ -263,6 +263,10 @@ export default function RouletteFarmPage() {
                            const bets = { "col1": 4.5, "col3": 4.5, "0": 0.5, "5": 0.5, "11": 0.5, "17": 0.5, "23": 0.5, "29": 0.5, "35": 0.5 };
                            setPlateaus(p => { const n = [...p]; n[activeIndex] = bets; return n; });
                          }},
+                         { name: "Grinder Fantôme", proba: "75.7% Neutre", desc: "Survie max (Zen)", action: () => {
+                           const bets = { "doz1": 0.5, "doz2": 0.5, "col3": 0.5 };
+                           setPlateaus(p => { const n = [...p]; n[activeIndex] = bets; return n; });
+                         }},
                          { name: "Col Grinder", proba: "70.3%", desc: "Mixte Rouge/Col 2", action: () => {
                            const bets = { "red": 5, "col2": 5 };
                            setPlateaus(p => { const n = [...p]; n[activeIndex] = bets; return n; });
