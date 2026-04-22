@@ -3,8 +3,7 @@ let isRunning = false;
 let accounts = [];
 let totalSpinsTarget = 0;
 let currentSpins = 0;
-let plateau1Bets = {};
-let plateau2Bets = {};
+let plateaus = []; // Array of Record<string, number>
 let delay = 2000; // Default 2 seconds per spin
 
 function calculateWinLogic(result, bets) {
@@ -34,7 +33,6 @@ function calculateWinLogic(result, bets) {
     else if (betId === "high" && result >= 19 && result <= 36) totalWin += amount * 2;
   });
 
-  // The 50% refund on even money bets for 0 is removed as requested.
   return totalWin;
 }
 
@@ -50,7 +48,8 @@ function runSpin() {
   accounts.forEach(acc => {
     if (acc.isBankrupt) return;
 
-    const bets = acc.plateauType === 1 ? plateau1Bets : plateau2Bets;
+    // acc.plateauIdx is 0-indexed
+    const bets = plateaus[acc.plateauIdx] || {};
     const totalBet = Object.values(bets).reduce((a, b) => a + b, 0);
 
     if (acc.balance < totalBet) {
@@ -90,10 +89,9 @@ self.onmessage = function(e) {
 
   if (action === "start") {
     isRunning = true;
-    accounts = payload.accounts; // Array of { id, balance, plateauType, maxBalance, minBalance, isBankrupt, etc }
+    accounts = payload.accounts; 
     totalSpinsTarget = payload.totalSpins;
-    plateau1Bets = payload.plateau1Bets;
-    plateau2Bets = payload.plateau2Bets;
+    plateaus = payload.plateaus;
     delay = payload.delay || 2000;
     currentSpins = 0;
     runSpin();
