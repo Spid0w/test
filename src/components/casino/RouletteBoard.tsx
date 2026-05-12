@@ -73,7 +73,7 @@ export function RouletteBoard({ onPlaceBet, activeBets, currentChip, isEraserMod
         <div className="flex h-[240px] md:h-[300px]">
           
           {/* Zero */}
-          <div className="relative w-12 md:w-16 h-full mr-1">
+          <div className="relative z-20 w-12 md:w-16 h-full mr-1">
              <button
                onClick={() => onPlaceBet("single", "0", currentChip)}
                className={`w-full h-full rounded-l-lg border border-gold/30 ${getNumberColor(0)} flex items-center justify-center font-bold text-lg relative group`}
