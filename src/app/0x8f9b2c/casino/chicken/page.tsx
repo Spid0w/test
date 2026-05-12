@@ -20,7 +20,7 @@ export default function ChickenPage() {
           <div className="flex items-center gap-8">
             <Link href="/0x8f9b2c/casino" className="flex items-center gap-2 text-zinc-500 hover:text-white transition-colors group">
               <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-              <span className="text-xs font-bold tracking-widest uppercase">Lobby</span>
+              <span className="text-xs font-bold tracking-widest uppercase">Accueil</span>
             </Link>
             <h1 className="text-2xl font-black tracking-tighter italic uppercase">
               Chicken <span className="text-red-600">Road</span>
@@ -60,8 +60,8 @@ export default function ChickenPage() {
                  <div className="text-sm font-black">97.00%</div>
               </div>
               <div>
-                 <div className="text-[10px] font-bold text-zinc-600 uppercase mb-1">Volatility</div>
-                 <div className="text-sm font-black">Adjustable</div>
+                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest leading-none">Volatilité</span>
+                 <div className="text-sm font-black">Ajustable</div>
               </div>
            </div>
         </div>

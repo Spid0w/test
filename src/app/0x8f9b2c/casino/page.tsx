@@ -66,18 +66,18 @@ export default function CasinoHub() {
                 Special Offer
               </span>
               <h2 className="text-5xl font-black italic tracking-tighter mb-4 leading-none uppercase">
-                Welcome to the <br /> <span className="text-[#d4af37]">High Roller</span> Club
+                Bienvenue au <br /> <span className="text-[#d4af37]">High Roller</span> Club
               </h2>
               <p className="text-zinc-400 text-lg font-medium mb-8">
-                Experience the most advanced casino games with unprecedented realism and stakes.
+                Découvrez les jeux de casino les plus avancés avec un réalisme et des enjeux sans précédent.
               </p>
               <div className="flex gap-4">
                 <button className="px-8 py-3 bg-white text-black font-black uppercase text-xs tracking-widest rounded-lg hover:scale-105 transition-transform">
-                  Claim Bonus
+                  Réclamer le Bonus
                 </button>
                 <div className="flex items-center gap-3 px-6 py-3 border border-white/10 rounded-lg text-zinc-400">
                    <Trophy className="w-5 h-5 text-[#d4af37]" />
-                   <span className="text-xs font-bold uppercase tracking-widest">Global Rank: #142</span>
+                    <span className="text-xs font-bold uppercase tracking-widest">Rang Global: #142</span>
                 </div>
               </div>
             </div>
@@ -91,20 +91,20 @@ export default function CasinoHub() {
           <div className="flex items-center justify-between mb-12">
             <div className="flex items-center gap-4">
               <div className="w-1 h-8 bg-[#d4af37]" />
-              <h3 className="text-2xl font-black italic tracking-tighter uppercase">Featured Games</h3>
+              <h3 className="text-2xl font-black italic tracking-tighter uppercase">Jeux à l'Affiche</h3>
             </div>
             
             <div className="flex gap-2">
-              <button className="px-4 py-2 bg-zinc-900 border border-white/5 rounded-lg text-[10px] font-bold uppercase text-zinc-400 hover:text-white transition-colors">All Games</button>
-              <button className="px-4 py-2 bg-zinc-900 border border-white/5 rounded-lg text-[10px] font-bold uppercase text-zinc-400 hover:text-white transition-colors">Originals</button>
-              <button className="px-4 py-2 bg-zinc-900 border border-white/5 rounded-lg text-[10px] font-bold uppercase text-zinc-400 hover:text-white transition-colors">Live Casino</button>
+              <button className="px-4 py-2 bg-zinc-900 border border-white/5 rounded-lg text-[10px] font-bold uppercase text-zinc-400 hover:text-white transition-colors">Tous les Jeux</button>
+              <button className="px-4 py-2 bg-zinc-900 border border-white/5 rounded-lg text-[10px] font-bold uppercase text-zinc-400 hover:text-white transition-colors">Originaux</button>
+              <button className="px-4 py-2 bg-zinc-900 border border-white/5 rounded-lg text-[10px] font-bold uppercase text-zinc-400 hover:text-white transition-colors">Casino Live</button>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <GameCard 
-              title="European Roulette"
-              description="The classic high-stakes experience. Bet on your lucky numbers and win big."
+              title="Roulette Européenne"
+              description="L'expérience classique à enjeux élevés. Pariez sur vos numéros chanceux."
               image="/casino/roulette.png"
               href="/0x8f9b2c/roulette"
               status="active"
@@ -112,7 +112,7 @@ export default function CasinoHub() {
             />
             <GameCard 
               title="Chicken Road"
-              description="Help the chicken cross the lanes to multiply your bet. Avoid the traffic!"
+              description="Aidez le poussin à traverser les voies pour multiplier votre mise. Évitez le trafic !"
               image="/casino/chicken.png"
               href="/0x8f9b2c/casino/chicken"
               status="active"
@@ -120,7 +120,7 @@ export default function CasinoHub() {
             />
             <GameCard 
               title="Rocket Crash"
-              description="How high can you go? Cash out before the rocket explodes in this intense game."
+              description="Jusqu'où pouvez-vous aller ? Encaissez avant que la fusée n'explose."
               image="/casino/crash.png"
               href="/0x8f9b2c/casino/crash"
               status="active"
@@ -128,7 +128,7 @@ export default function CasinoHub() {
             />
             <GameCard 
               title="Diamond Mines"
-              description="Select your tiles first, then launch to find diamonds. Features Auto-Farm mode."
+              description="Sélectionnez vos cases, puis lancez pour trouver des diamants."
               image="/casino/slots.png"
               href="/0x8f9b2c/casino/slots"
               status="active"
