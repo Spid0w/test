@@ -1,5 +1,11 @@
+"use client";
+
 import { useBalance } from "@/context/BalanceContext";
 import { BalanceModal } from "@/components/casino/BalanceModal";
+import { motion } from "framer-motion";
+import { GameCard } from "@/components/casino/GameCard";
+import { ArrowLeft, Coins, Trophy, User } from "lucide-react";
+import Link from "next/link";
 
 export default function CasinoHub() {
   const { balance } = useBalance();
