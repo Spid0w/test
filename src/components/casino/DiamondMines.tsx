@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useBalance } from "@/context/BalanceContext";
-import { Bomb, Coins, Diamond, Play, RotateCcw, Settings, Zap } from "lucide-react";
+import { Bomb, Coins, Diamond, Play, RotateCcw, Settings, Zap, History, LayoutGrid, Info } from "lucide-react";
 
 const GRID_SIZE = 25;
 
@@ -16,6 +16,8 @@ export function DiamondMines() {
   const [results, setResults] = useState<{ index: number; type: "diamond" | "bomb" }[]>([]);
   const [isAuto, setIsAuto] = useState(false);
   const [autoSpeed, setAutoSpeed] = useState(1000);
+  const [slowOnWin, setSlowOnWin] = useState(true);
+  const [currentWin, setCurrentWin] = useState<number | null>(null);
   const autoTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const toggleTile = (index: number) => {
@@ -25,18 +27,19 @@ export function DiamondMines() {
     );
   };
 
-  const calculateMultiplier = (revealedCount: number) => {
+  const calculateMultiplier = (revealedCount: number, bombs: number) => {
     let n = GRID_SIZE;
-    let m = bombsCount;
+    let m = bombs;
     let r = revealedCount;
+    if (r === 0) return 1;
     let mult = 1;
     for (let i = 0; i < r; i++) {
       mult *= (n - i) / (n - m - i);
     }
-    return Math.max(1, mult * 0.95); // 5% house edge
+    return Math.max(1, mult * 0.97); // 3% house edge
   };
 
-  const playRound = useCallback(() => {
+  const playRound = useCallback(async () => {
     if (selectedTiles.length === 0) return;
     if (balance === null || balance < bet) {
       setIsAuto(false);
@@ -45,14 +48,16 @@ export function DiamondMines() {
 
     updateBalance(-bet);
     setGameState("revealing");
+    setCurrentWin(null);
 
-    // Generate bomb positions
+    // Generate bomb positions for the whole grid
     const bombPositions: number[] = [];
     while (bombPositions.length < bombsCount) {
       const pos = Math.floor(Math.random() * GRID_SIZE);
       if (!bombPositions.includes(pos)) bombPositions.push(pos);
     }
 
+    // Determine results for selected tiles
     const roundResults: { index: number; type: "diamond" | "bomb" }[] = [];
     let hitBomb = false;
 
@@ -65,24 +70,39 @@ export function DiamondMines() {
       }
     });
 
-    setResults(roundResults);
+    // Animate reveal one by one
+    for (let i = 0; i < roundResults.length; i++) {
+       setResults(prev => [...prev, roundResults[i]]);
+       await new Promise(r => setTimeout(r, 100)); // Quick sequence
+       if (roundResults[i].type === "bomb") break; 
+    }
 
+    // Show result
     setTimeout(() => {
       setGameState("result");
+      let winAmount = 0;
       if (!hitBomb) {
-        const mult = calculateMultiplier(selectedTiles.length);
-        updateBalance(bet * mult);
+        const mult = calculateMultiplier(selectedTiles.length, bombsCount);
+        winAmount = bet * mult;
+        updateBalance(winAmount);
+        setCurrentWin(winAmount);
       }
       
       if (isAuto) {
-        autoTimerRef.current = setTimeout(playRound, autoSpeed);
+        const delay = (winAmount > 0 && slowOnWin) ? autoSpeed * 2 : autoSpeed;
+        autoTimerRef.current = setTimeout(() => {
+           setResults([]);
+           setGameState("betting");
+           playRound();
+        }, delay);
       }
-    }, 800);
-  }, [selectedTiles, balance, bet, bombsCount, isAuto, autoSpeed, updateBalance]);
+    }, 500);
+  }, [selectedTiles, balance, bet, bombsCount, isAuto, autoSpeed, slowOnWin, updateBalance]);
 
   const startAuto = () => {
     if (selectedTiles.length === 0) return;
     setIsAuto(true);
+    playRound();
   };
 
   const stopAuto = () => {
@@ -90,163 +110,144 @@ export function DiamondMines() {
     if (autoTimerRef.current) clearTimeout(autoTimerRef.current);
   };
 
-  useEffect(() => {
-    if (isAuto && gameState === "betting") {
-      playRound();
-    }
-  }, [isAuto, gameState, playRound]);
-
   return (
-    <div className="flex flex-col lg:flex-row gap-12 max-w-6xl mx-auto p-10 bg-zinc-900/50 backdrop-blur-xl rounded-[40px] border border-white/5 shadow-2xl relative">
-      {/* Auto Settings Floating Panel */}
-      <div className="absolute top-6 right-10 flex gap-4">
-        <div className="flex items-center gap-2 bg-black/40 px-4 py-2 rounded-xl border border-white/5">
-           <Settings className="w-4 h-4 text-zinc-500" />
-           <select 
-             value={autoSpeed} 
-             onChange={(e) => setAutoSpeed(Number(e.target.value))}
-             className="bg-transparent text-[10px] font-black text-zinc-400 focus:outline-none"
-           >
-             <option value={2000}>Slow</option>
-             <option value={1000}>Normal</option>
-             <option value={500}>Fast</option>
-             <option value={200}>Turbo</option>
-           </select>
-        </div>
-      </div>
+    <div className="flex flex-col lg:flex-row gap-8 max-w-7xl mx-auto h-[800px] bg-[#0f111a] rounded-3xl border border-white/5 overflow-hidden shadow-2xl">
+      {/* Sidebar Controls */}
+      <div className="w-80 bg-[#161925] border-r border-white/5 p-6 flex flex-col gap-8">
+         <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+            <div className="bg-green-500/20 p-2 rounded-lg"><LayoutGrid className="w-5 h-5 text-green-500" /></div>
+            <h2 className="text-xl font-black italic uppercase text-white tracking-tighter">MINES</h2>
+         </div>
 
-      {/* Controls */}
-      <div className="w-full lg:w-72 flex flex-col gap-8">
-        <div className="space-y-4">
-          <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">Stake</label>
-          <div className="relative">
-            <input 
-              type="number" 
-              value={bet}
-              onChange={(e) => setBet(Number(e.target.value))}
-              disabled={isAuto || gameState !== "betting"}
-              className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 text-xl font-black text-white focus:outline-none focus:border-[#d4af37]"
-            />
-            <Coins className="absolute right-6 top-1/2 -translate-y-1/2 w-5 h-5 text-[#d4af37]" />
-          </div>
-        </div>
+         <div className="space-y-6">
+            <div className="space-y-2">
+               <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Montant de la mise</label>
+               <div className="bg-black border border-white/10 rounded-xl p-3 flex items-center justify-between">
+                  <input type="number" value={bet} onChange={(e) => setBet(Number(e.target.value))} className="bg-transparent font-black text-white outline-none w-full" />
+                  <Coins size={14} className="text-yellow-500" />
+               </div>
+               <div className="grid grid-cols-2 gap-2">
+                  <button onClick={() => setBet(b => Math.max(1, b/2))} className="bg-zinc-800 py-1.5 rounded-lg text-[10px] font-bold hover:bg-zinc-700">1/2</button>
+                  <button onClick={() => setBet(b => b*2)} className="bg-zinc-800 py-1.5 rounded-lg text-[10px] font-bold hover:bg-zinc-700">2x</button>
+               </div>
+            </div>
 
-        <div className="space-y-4">
-          <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">Bomb Count</label>
-          <div className="grid grid-cols-4 gap-2">
-            {[1, 3, 5, 10].map(count => (
-              <button
-                key={count}
-                onClick={() => setBombsCount(count)}
-                disabled={isAuto || gameState !== "betting"}
-                className={`py-3 rounded-xl text-xs font-black transition-all ${bombsCount === count ? "bg-[#d4af37] text-black" : "bg-zinc-800 text-zinc-400"}`}
-              >
-                {count}
-              </button>
-            ))}
-          </div>
-        </div>
+            <div className="space-y-2">
+               <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest flex justify-between">
+                  Nombre de mines
+                  <span className="text-white">{bombsCount}</span>
+               </label>
+               <input 
+                 type="range" min="1" max="24" step="1" 
+                 value={bombsCount} onChange={(e) => setBombsCount(Number(e.target.value))}
+                 className="w-full h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-green-500"
+               />
+               <div className="grid grid-cols-4 gap-1">
+                  {[1, 3, 5, 24].map(v => (
+                    <button key={v} onClick={() => setBombsCount(v)} className={`bg-zinc-800 py-1 rounded text-[10px] font-bold ${bombsCount === v ? "text-green-500 border border-green-500/30" : "text-zinc-500"}`}>{v}</button>
+                  ))}
+               </div>
+            </div>
 
-        <div className="mt-auto space-y-4">
-          {!isAuto ? (
-            <>
-              <button 
-                onClick={playRound}
-                disabled={selectedTiles.length === 0 || gameState !== "betting"}
-                className="w-full py-6 bg-[#d4af37] text-black font-black uppercase tracking-widest rounded-2xl hover:scale-[1.02] active:scale-95 transition-all shadow-xl disabled:opacity-50"
-              >
-                Launch Round
-              </button>
-              <button 
-                onClick={startAuto}
-                disabled={selectedTiles.length === 0}
-                className="w-full py-4 border border-white/10 text-white font-black uppercase tracking-widest rounded-2xl hover:bg-white/5 transition-all flex items-center justify-center gap-2"
-              >
-                <Play className="w-4 h-4 fill-current" /> Auto Mode
-              </button>
-            </>
-          ) : (
-            <button 
-              onClick={stopAuto}
-              className="w-full py-6 bg-red-600 text-white font-black uppercase tracking-widest rounded-2xl animate-pulse shadow-[0_0_30px_rgba(220,38,38,0.3)]"
-            >
-              Stop Farming
-            </button>
-          )}
+            {isAuto && (
+               <div className="space-y-4 pt-4 border-t border-white/5">
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Auto Speed</label>
+                     <div className="grid grid-cols-2 gap-2">
+                        <button onClick={() => setAutoSpeed(1000)} className={`py-1.5 rounded-lg text-[10px] font-bold ${autoSpeed === 1000 ? "bg-green-600 text-white" : "bg-zinc-800"}`}>Normal</button>
+                        <button onClick={() => setAutoSpeed(200)} className={`py-1.5 rounded-lg text-[10px] font-bold ${autoSpeed === 200 ? "bg-green-600 text-white" : "bg-zinc-800"}`}>Turbo</button>
+                     </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                     <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Slow on win</label>
+                     <button onClick={() => setSlowOnWin(!slowOnWin)} className={`w-10 h-5 rounded-full transition-all relative ${slowOnWin ? "bg-green-600" : "bg-zinc-800"}`}>
+                        <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${slowOnWin ? "right-1" : "left-1"}`} />
+                     </button>
+                  </div>
+               </div>
+            )}
+         </div>
 
-          {gameState === "result" && !isAuto && (
-            <button 
-              onClick={() => { setGameState("betting"); setResults([]); }}
-              className="w-full py-4 bg-zinc-800 text-zinc-400 font-black uppercase tracking-widest rounded-2xl"
-            >
-              Clear Board
-            </button>
-          )}
-        </div>
+         <div className="mt-auto space-y-4">
+            {!isAuto ? (
+               <>
+                  <button 
+                    onClick={playRound} 
+                    disabled={selectedTiles.length === 0 || gameState !== "betting"}
+                    className="w-full py-5 bg-green-500 text-black font-black uppercase tracking-widest rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-lg shadow-green-500/20 disabled:opacity-40"
+                  >
+                    PARIER
+                  </button>
+                  <button onClick={startAuto} className="w-full py-3 bg-zinc-800 text-white font-black uppercase text-xs rounded-xl hover:bg-zinc-700 transition-all flex items-center justify-center gap-2"><Play size={14} className="fill-current" /> MODE AUTO</button>
+               </>
+            ) : (
+               <button onClick={stopAuto} className="w-full py-5 bg-red-600 text-white font-black uppercase rounded-2xl animate-pulse shadow-lg shadow-red-500/20">ARRÊTER AUTO</button>
+            )}
+         </div>
       </div>
 
       {/* Grid Area */}
-      <div className="flex-1">
-        <div className="grid grid-cols-5 gap-3 aspect-square max-w-[500px] mx-auto">
-          {Array.from({ length: GRID_SIZE }).map((_, i) => {
-            const isSelected = selectedTiles.includes(i);
-            const result = results.find(r => r.index === i);
-            
-            return (
-              <motion.div
-                key={i}
-                whileHover={gameState === "betting" && !isAuto ? { scale: 1.05 } : {}}
-                whileTap={gameState === "betting" && !isAuto ? { scale: 0.95 } : {}}
-                onClick={() => toggleTile(i)}
-                className={`relative rounded-2xl flex items-center justify-center cursor-pointer transition-all border-2
-                  ${isSelected ? "border-[#d4af37] bg-[#d4af37]/10" : "border-white/5 bg-zinc-800"}
-                  ${result?.type === "bomb" ? "bg-red-950 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.3)]" : ""}
-                  ${result?.type === "diamond" ? "bg-green-950 border-green-500 shadow-[0_0_20px_rgba(34,197,94,0.3)]" : ""}
-                `}
-              >
-                <AnimatePresence mode="wait">
-                  {result ? (
-                    <motion.div
-                      key="result"
-                      initial={{ scale: 0, rotate: -45 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                    >
-                      {result.type === "bomb" ? (
-                        <Bomb className="w-10 h-10 text-red-500" />
-                      ) : (
-                        <Diamond className="w-10 h-10 text-[#d4af37] drop-shadow-[0_0_10px_rgba(212,175,55,0.5)]" />
-                      )}
-                    </motion.div>
-                  ) : isSelected && (
-                    <motion.div
-                      key="selected"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="w-3 h-3 bg-[#d4af37] rounded-full"
-                    />
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            );
-          })}
-        </div>
+      <div className="flex-1 p-12 flex flex-col items-center justify-center relative">
+         <div className="absolute top-12 flex gap-2">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="px-4 py-2 bg-zinc-900 border border-white/5 rounded-lg flex flex-col items-center min-w-[80px]">
+                 <span className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Mines {bombsCount}</span>
+                 <span className="text-xs font-black text-green-500">{calculateMultiplier(i, bombsCount).toFixed(2)}x</span>
+              </div>
+            ))}
+         </div>
 
-        {/* Multiplier / Potential Win */}
-        <div className="mt-12 flex items-center justify-between px-4">
-           <div className="flex flex-col">
-             <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Potential Multiplier</span>
-             <span className="text-3xl font-black text-white italic">
-               {selectedTiles.length > 0 ? calculateMultiplier(selectedTiles.length).toFixed(2) : "1.00"}x
-             </span>
-           </div>
-           
-           <div className="flex flex-col items-end">
-             <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Potential Win</span>
-             <span className="text-3xl font-black text-[#d4af37] italic">
-               {selectedTiles.length > 0 ? (bet * calculateMultiplier(selectedTiles.length)).toFixed(2) : "0.00"}$
-             </span>
-           </div>
-        </div>
+         <div className="grid grid-cols-5 gap-4 aspect-square w-full max-w-[550px]">
+            {Array.from({ length: GRID_SIZE }).map((_, i) => {
+               const isSelected = selectedTiles.includes(i);
+               const result = results.find(r => r.index === i);
+               
+               return (
+                  <motion.div
+                    key={i}
+                    whileHover={gameState === "betting" && !isAuto ? { scale: 1.05 } : {}}
+                    whileTap={gameState === "betting" && !isAuto ? { scale: 0.95 } : {}}
+                    onClick={() => toggleTile(i)}
+                    className={`relative rounded-xl flex items-center justify-center cursor-pointer transition-all border-2
+                      ${isSelected ? "border-green-500/50 bg-green-500/10 shadow-[0_0_20px_rgba(34,197,94,0.1)]" : "border-white/5 bg-[#1c1e2b]"}
+                      ${result?.type === "bomb" ? "bg-red-950 border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.4)]" : ""}
+                      ${result?.type === "diamond" ? "bg-green-950 border-green-500 shadow-[0_0_30px_rgba(34,197,94,0.4)]" : ""}
+                    `}
+                  >
+                    <AnimatePresence mode="wait">
+                      {result ? (
+                        <motion.div key="result" initial={{ scale: 0, rotate: -45 }} animate={{ scale: 1, rotate: 0 }}>
+                          {result.type === "bomb" ? (
+                            <Bomb className="w-12 h-12 text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
+                          ) : (
+                            <Diamond className="w-12 h-12 text-blue-400 drop-shadow-[0_0_15px_rgba(96,165,250,0.5)]" />
+                          )}
+                        </motion.div>
+                      ) : isSelected && (
+                        <motion.div key="selected" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-4 h-4 bg-green-500 rounded-full shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+               );
+            })}
+         </div>
+
+         {/* Stats Panel */}
+         <div className="mt-12 w-full max-w-[550px] flex justify-between items-end">
+            <div className="space-y-1">
+               <div className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Multiplicateur Actuel</div>
+               <div className="text-4xl font-black italic text-white">{calculateMultiplier(selectedTiles.length, bombsCount).toFixed(2)}x</div>
+            </div>
+            {currentWin && (
+               <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-green-500 px-6 py-2 rounded-xl text-black font-black text-xl italic shadow-[0_0_40px_rgba(34,197,94,0.4)]">
+                  +{currentWin.toFixed(2)} $
+               </motion.div>
+            )}
+            <div className="text-right space-y-1">
+               <div className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Gain Potentiel</div>
+               <div className="text-4xl font-black italic text-green-500">{(bet * calculateMultiplier(selectedTiles.length, bombsCount)).toFixed(2)} $</div>
+            </div>
+         </div>
       </div>
     </div>
   );

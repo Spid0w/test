@@ -12,7 +12,6 @@ export default function CasinoHub() {
 
   return (
     <main className="min-h-screen bg-[#050505] text-white selection:bg-gold-500 selection:text-black">
-      <BalanceModal />
       {/* Premium Gradient Overlay */}
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_-20%,#1a1a1a,transparent)] pointer-events-none" />
       <div className="fixed inset-0 bg-[url('/noise.png')] opacity-[0.03] pointer-events-none" />

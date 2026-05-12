@@ -8,6 +8,7 @@ import { Coins, Trophy, History, ArrowLeft, RefreshCw, Eraser, TrendingUp, Rotat
 import Link from "next/link";
 import { REDS, calculateWin } from "@/lib/roulette-utils";
 import { useBalance } from "@/context/BalanceContext";
+import { BalanceModal } from "@/components/casino/BalanceModal";
 
 const CHIP_VALUES = [0.5, 1, 5, 10, 20];
 
@@ -312,6 +313,7 @@ export default function RoulettePage() {
 
   return (
     <main className="min-h-screen bg-[#0a0502] text-[#e5c299] font-serif p-4 md:p-6 lg:p-8 relative overflow-hidden">
+      <BalanceModal />
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/dust.png')]" />
       <div className="fixed inset-0 pointer-events-none z-50 crt opacity-20" />
 

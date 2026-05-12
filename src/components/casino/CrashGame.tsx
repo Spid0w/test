@@ -3,24 +3,27 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useBalance } from "@/context/BalanceContext";
-import { Coins, Rocket, RotateCcw, TrendingUp, Zap } from "lucide-react";
+import { Coins, Rocket, RotateCcw, TrendingUp, Zap, History, User } from "lucide-react";
 
 export function CrashGame() {
   const { balance, updateBalance } = useBalance();
-  const [bet, setBet] = useState(10);
+  const [bet1, setBet1] = useState(10);
+  const [bet2, setBet2] = useState(0);
   const [multiplier, setMultiplier] = useState(1.0);
-  const [gameState, setGameState] = useState<"betting" | "launching" | "crashed" | "won">("betting");
-  const [history, setHistory] = useState<number[]>([]);
+  const [gameState, setGameState] = useState<"betting" | "launching" | "crashed">("betting");
+  const [history, setHistory] = useState<number[]>([1.42, 5.23, 1.02, 12.45, 1.89, 2.45, 4.35, 11.20, 1.10]);
   const [crashPoint, setCrashPoint] = useState(0);
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number>(0);
 
   const startLaunch = () => {
-    if (balance === null || balance < bet) return;
-    updateBalance(-bet);
+    const totalBet = bet1 + bet2;
+    if (balance === null || balance < totalBet || totalBet === 0) return;
+    updateBalance(-totalBet);
 
-    const p = 0.99 / (1 - Math.random());
+    // Provably fair-ish logic
+    const p = Math.max(1.01, 0.99 / (1 - Math.random()));
     setCrashPoint(p);
     setGameState("launching");
     setMultiplier(1.0);
@@ -28,11 +31,12 @@ export function CrashGame() {
     
     const tick = () => {
       const elapsed = (Date.now() - startTimeRef.current) / 1000;
-      const currentMult = Math.pow(Math.E, 0.08 * elapsed);
+      // Exponential growth
+      const currentMult = Math.pow(Math.E, 0.07 * elapsed);
       
       if (currentMult >= p) {
         setGameState("crashed");
-        setHistory(prev => [p, ...prev].slice(0, 10));
+        setHistory(prev => [p, ...prev].slice(0, 20));
         if (timerRef.current) clearInterval(timerRef.current);
       } else {
         setMultiplier(currentMult);
@@ -42,17 +46,26 @@ export function CrashGame() {
     timerRef.current = setInterval(tick, 50);
   };
 
-  const cashOut = () => {
+  const cashOut = (panel: 1 | 2) => {
     if (gameState === "launching") {
-      if (timerRef.current) clearInterval(timerRef.current);
-      setGameState("won");
-      updateBalance(bet * multiplier);
+      const amount = panel === 1 ? bet1 : bet2;
+      if (amount > 0) {
+        updateBalance(amount * multiplier);
+        if (panel === 1) setBet1(0);
+        else setBet2(0);
+        
+        if (bet1 === 0 && bet2 === 0) {
+          // If both cashed out, we could stop but let's let it run for visual
+        }
+      }
     }
   };
 
   const reset = () => {
     setGameState("betting");
     setMultiplier(1.0);
+    setBet1(10);
+    setBet2(0);
   };
 
   useEffect(() => {
@@ -61,169 +74,165 @@ export function CrashGame() {
     };
   }, []);
 
-  // Curve calculation: Parabolic path
-  // x increases linearly with time (or log of multiplier)
-  // y decreases (goes up) with a curve
-  const t = Math.min((multiplier - 1) / 10, 1); // 0 to 1 over 10x
-  const rocketX = 10 + t * 70;
-  const rocketY = 80 - Math.pow(t, 0.6) * 60;
-
   return (
-    <div className="flex flex-col lg:flex-row gap-8 max-w-6xl mx-auto p-6 bg-zinc-900/50 backdrop-blur-xl rounded-3xl border border-white/5 shadow-2xl">
-      {/* Controls */}
-      <div className="w-full lg:w-80 flex flex-col gap-6">
-        <div className="space-y-4">
-          <label className="block text-xs font-bold text-zinc-500 uppercase tracking-widest">Bet Amount</label>
-          <div className="relative">
-            <input 
-              type="number" 
-              value={bet}
-              onChange={(e) => setBet(Number(e.target.value))}
-              disabled={gameState !== "betting"}
-              className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white font-black focus:outline-none focus:border-[#d4af37] transition-colors disabled:opacity-50"
-            />
-            <Coins className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#d4af37]" />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-             <button onClick={() => setBet(b => Math.max(1, b/2))} disabled={gameState !== "betting"} className="py-2 bg-zinc-800 rounded-lg text-[10px] font-black uppercase hover:bg-zinc-700 transition-colors">1/2</button>
-             <button onClick={() => setBet(b => b*2)} disabled={gameState !== "betting"} className="py-2 bg-zinc-800 rounded-lg text-[10px] font-black uppercase hover:bg-zinc-700 transition-colors">2x</button>
-          </div>
-        </div>
-
-        <div className="mt-auto space-y-4">
-          {gameState === "betting" ? (
-            <button 
-              onClick={startLaunch}
-              className="w-full py-4 bg-[#d4af37] text-black font-black uppercase tracking-widest rounded-xl hover:scale-[1.02] active:scale-95 transition-all shadow-[0_0_20px_rgba(212,175,55,0.2)]"
-            >
-              Launch Rocket
-            </button>
-          ) : gameState === "launching" ? (
-            <button 
-              onClick={cashOut}
-              className="w-full py-4 bg-green-600 text-white font-black uppercase tracking-widest rounded-xl hover:bg-green-500 transition-all flex flex-col items-center leading-none"
-            >
-              <span className="text-xs mb-1 opacity-70">Cash Out</span>
-              <span className="text-xl">{(bet * multiplier).toFixed(2)} $</span>
-            </button>
-          ) : (
-            <button 
-              onClick={reset}
-              className="w-full py-4 bg-zinc-800 text-white font-black uppercase tracking-widest rounded-xl hover:bg-zinc-700 transition-all flex items-center justify-center gap-2"
-            >
-              <RotateCcw className="w-4 h-4" />
-              Next Round
-            </button>
-          )}
-        </div>
-
-        {/* History */}
-        <div className="mt-4">
-           <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">Recent History</label>
-           <div className="flex flex-wrap gap-2">
-             {history.map((h, i) => (
-               <span key={i} className={`px-2 py-1 rounded text-[10px] font-black ${h >= 2 ? "bg-green-500/20 text-green-500" : "bg-red-500/20 text-red-500"}`}>
-                 {h.toFixed(2)}x
-               </span>
-             ))}
-           </div>
-        </div>
+    <div className="flex flex-col h-[700px] max-w-7xl mx-auto bg-[#0f111a] rounded-3xl border border-white/5 overflow-hidden shadow-2xl">
+      {/* Top Bar */}
+      <div className="h-14 border-b border-white/5 flex items-center justify-between px-6 bg-[#161925]">
+         <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-yellow-500 rounded flex items-center justify-center font-black text-black text-xs italic">JetX</div>
+         </div>
+         <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2 text-zinc-500 text-xs font-bold">
+               <User size={14} /> Demo153
+            </div>
+            <div className="flex items-center gap-2 text-yellow-500 text-sm font-black">
+               Solde: {balance !== null ? balance.toFixed(2) : "0.00"} $
+            </div>
+         </div>
       </div>
 
-      {/* Animation Area */}
-      <div className="flex-1 relative h-[400px] lg:h-auto min-h-[400px] bg-black rounded-2xl border border-white/5 overflow-hidden">
-        {/* Background Grid */}
-        <div className="absolute inset-0 opacity-10 pointer-events-none" 
-             style={{ backgroundImage: "linear-gradient(#333 1px, transparent 1px), linear-gradient(90deg, #333 1px, transparent 1px)", backgroundSize: "40px 40px" }} 
-        />
-        
-        {/* Curve Line Drawing */}
-        <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-20">
-           <motion.path 
-             d={`M 10 80 Q 40 80, 80 20`}
-             stroke="#d4af37"
-             strokeWidth="2"
-             fill="none"
-             pathLength="1"
-             initial={{ pathLength: 0 }}
-             animate={{ pathLength: t }}
-           />
-        </svg>
-
-        {/* Multiplier Display */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-           <motion.div 
-             key={gameState === "crashed" ? "crashed" : "active"}
-             initial={{ scale: 0.8, opacity: 0 }}
-             animate={{ scale: 1, opacity: 1 }}
-             className={`text-7xl lg:text-9xl font-black italic tracking-tighter ${gameState === "crashed" ? "text-red-600" : "text-white"}`}
-           >
-             {multiplier.toFixed(2)}<span className="text-4xl lg:text-6xl text-zinc-600">x</span>
-           </motion.div>
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left History Sidebar */}
+        <div className="w-20 border-r border-white/5 bg-[#0a0c14] overflow-y-auto p-2 space-y-2 custom-scrollbar">
+           {history.map((h, i) => (
+             <div key={i} className={`text-[10px] font-black text-center py-1 rounded border border-white/5 ${h >= 2 ? "text-green-500" : "text-red-500"}`}>
+                {h.toFixed(2)}x
+             </div>
+           ))}
         </div>
 
-        {/* Rocket Animation */}
-        <AnimatePresence>
-          {(gameState === "launching" || gameState === "won") && (
-            <motion.div
-              initial={{ x: "10%", y: "80%" }}
-              animate={{ 
-                x: `${rocketX}%`, 
-                y: `${rocketY}%` 
-              }}
-              exit={{ opacity: 0, scale: 2 }}
-              className="absolute z-20"
-            >
-              <div className="relative">
-                <Rocket className="w-12 h-12 text-[#d4af37] rotate-45 drop-shadow-[0_0_15px_rgba(212,175,55,0.8)]" />
-                {/* Flame */}
-                <motion.div 
-                  animate={{ scaleY: [1, 1.5, 1], opacity: [0.8, 1, 0.8] }}
-                  transition={{ repeat: Infinity, duration: 0.2 }}
-                  className="absolute -bottom-4 -left-1 w-2 h-8 bg-gradient-to-t from-red-600 via-orange-500 to-transparent blur-sm rotate-45 origin-top" 
-                />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Crash / Win Overlays */}
-        <AnimatePresence>
-          {gameState === "crashed" && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="absolute inset-0 bg-red-950/20 backdrop-blur-[2px] z-30 flex items-center justify-center"
-            >
-              <div className="text-center bg-black/80 p-8 rounded-2xl border border-red-500/50">
-                 <Zap className="w-12 h-12 text-red-500 mx-auto mb-4" />
-                 <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter mb-1">Crashed!</h3>
-                 <p className="text-red-500 font-bold uppercase text-xs tracking-widest">Multiplier stopped at {crashPoint.toFixed(2)}x</p>
-              </div>
-            </motion.div>
-          )}
-          {gameState === "won" && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="absolute inset-0 bg-green-950/20 backdrop-blur-[2px] z-30 flex items-center justify-center"
-            >
-              <div className="text-center bg-black/80 p-8 rounded-2xl border border-green-500/50">
-                 <TrendingUp className="w-12 h-12 text-green-500 mx-auto mb-4" />
-                 <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter mb-1">Success!</h3>
-                 <p className="text-green-500 font-bold uppercase text-xs tracking-widest">Cashed out at {multiplier.toFixed(2)}x</p>
-                 <div className="text-2xl font-black text-white mt-4">+{(bet * multiplier).toFixed(2)} $</div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Floating Digital Stats */}
-        <div className="absolute top-6 left-6 flex gap-6 text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em] z-10">
-           <div className="flex items-center gap-2">
-             <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> NETWORK OK
+        {/* Main Game Area */}
+        <div className="flex-1 flex flex-col relative bg-[#1c1e2b]">
+           {/* Scene background */}
+           <div className="absolute inset-0 bg-gradient-to-b from-[#4a3a5a] via-[#7d6a8b] to-[#1c1e2b] opacity-30 pointer-events-none" />
+           <div className="absolute bottom-20 inset-x-0 h-40 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 pointer-events-none" />
+           
+           {/* Multiplier in center */}
+           <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+              <motion.div 
+                key={gameState}
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className={`text-8xl font-black italic tracking-tighter ${gameState === "crashed" ? "text-red-600" : "text-green-500 shadow-green-500/20 shadow-2xl"}`}
+              >
+                {multiplier.toFixed(2)}x
+              </motion.div>
            </div>
-           <div>TICK: {Math.floor(Date.now() / 1000) % 1000}</div>
+
+           {/* Jet Animation */}
+           <AnimatePresence>
+             {(gameState === "launching" || gameState === "crashed") && (
+               <motion.div
+                 initial={{ x: "10%", y: "80%", rotate: 0 }}
+                 animate={gameState === "launching" ? { 
+                   x: `${Math.min(10 + (multiplier - 1) * 20, 70)}%`, 
+                   y: `${Math.max(80 - (multiplier - 1) * 20, 20)}%`,
+                   rotate: -15
+                 } : {
+                   y: "110%", rotate: 45
+                 }}
+                 className="absolute z-20"
+               >
+                 <div className="relative">
+                    <Rocket className="w-20 h-20 text-yellow-500 rotate-90 drop-shadow-[0_0_30px_rgba(234,179,8,0.5)]" />
+                    {gameState === "launching" && (
+                      <motion.div 
+                        animate={{ scale: [1, 1.2, 1], opacity: [0.6, 1, 0.6] }}
+                        transition={{ repeat: Infinity, duration: 0.1 }}
+                        className="absolute top-1/2 -left-12 -translate-y-1/2 w-16 h-4 bg-gradient-to-r from-orange-600 to-transparent blur-md"
+                      />
+                    )}
+                 </div>
+               </motion.div>
+             )}
+           </AnimatePresence>
+
+           {/* Landing strip decorative */}
+           <div className="absolute bottom-0 inset-x-0 h-10 bg-[#0a0c14] border-t border-white/10" />
+
+           {/* Bottom Betting Panels */}
+           <div className="mt-auto h-40 bg-[#161925] border-t border-white/10 p-4 flex gap-4">
+              {/* Panel 1 */}
+              <div className="flex-1 bg-[#1c2130] rounded-xl border border-white/5 p-4 flex items-center justify-between gap-6">
+                 <div className="space-y-4 flex-1">
+                    <div className="flex gap-4">
+                       <div className="flex-1 space-y-1">
+                          <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Mise</label>
+                          <div className="flex bg-black/40 rounded-lg p-2 border border-white/5">
+                             <input type="number" value={bet1} onChange={(e) => setBet1(Number(e.target.value))} className="bg-transparent w-full font-black text-white outline-none" />
+                          </div>
+                       </div>
+                    </div>
+                    <div className="grid grid-cols-4 gap-1">
+                       {[5, 20, 50, 100].map(v => (
+                         <button key={v} onClick={() => setBet1(v)} className="bg-zinc-800 text-[10px] font-bold py-1 rounded hover:bg-zinc-700">{v}</button>
+                       ))}
+                    </div>
+                 </div>
+                 {gameState === "launching" && bet1 > 0 ? (
+                    <button onClick={() => cashOut(1)} className="h-full px-10 bg-yellow-500 text-black font-black uppercase rounded-xl hover:scale-105 active:scale-95 transition-all">
+                       <div className="text-[10px] opacity-60">Cash Out</div>
+                       <div className="text-xl">{(bet1 * multiplier).toFixed(2)}$</div>
+                    </button>
+                 ) : gameState === "launching" && bet1 === 0 ? (
+                    <div className="h-full px-10 bg-zinc-800 text-zinc-500 font-black uppercase rounded-xl flex items-center justify-center">Cashed Out</div>
+                 ) : (
+                    <button onClick={startLaunch} disabled={gameState !== "betting"} className="h-full px-10 bg-yellow-500 text-black font-black uppercase rounded-xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50">Mise</button>
+                 )}
+              </div>
+
+              {/* Panel 2 */}
+              <div className="flex-1 bg-[#1c2130] rounded-xl border border-white/5 p-4 flex items-center justify-between gap-6">
+                 <div className="space-y-4 flex-1">
+                    <div className="flex gap-4">
+                       <div className="flex-1 space-y-1">
+                          <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Mise</label>
+                          <div className="flex bg-black/40 rounded-lg p-2 border border-white/5">
+                             <input type="number" value={bet2} onChange={(e) => setBet2(Number(e.target.value))} className="bg-transparent w-full font-black text-white outline-none" />
+                          </div>
+                       </div>
+                    </div>
+                    <div className="grid grid-cols-4 gap-1">
+                       {[5, 20, 50, 100].map(v => (
+                         <button key={v} onClick={() => setBet2(v)} className="bg-zinc-800 text-[10px] font-bold py-1 rounded hover:bg-zinc-700">{v}</button>
+                       ))}
+                    </div>
+                 </div>
+                 {gameState === "launching" && bet2 > 0 ? (
+                    <button onClick={() => cashOut(2)} className="h-full px-10 bg-yellow-500 text-black font-black uppercase rounded-xl hover:scale-105 active:scale-95 transition-all">
+                       <div className="text-[10px] opacity-60">Cash Out</div>
+                       <div className="text-xl">{(bet2 * multiplier).toFixed(2)}$</div>
+                    </button>
+                 ) : gameState === "launching" && bet2 === 0 ? (
+                    <div className="h-full px-10 bg-zinc-800 text-zinc-500 font-black uppercase rounded-xl flex items-center justify-center">Cashed Out</div>
+                 ) : gameState === "crashed" ? (
+                    <button onClick={reset} className="h-full px-10 bg-zinc-800 text-white font-black uppercase rounded-xl hover:bg-zinc-700 transition-all flex items-center justify-center gap-2"><RotateCcw size={16} /> Reset</button>
+                 ) : (
+                    <button onClick={startLaunch} disabled={gameState !== "betting"} className="h-full px-10 bg-yellow-500 text-black font-black uppercase rounded-xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50">Mise</button>
+                 )}
+              </div>
+           </div>
+        </div>
+
+        {/* Right Stats Sidebar */}
+        <div className="w-64 border-l border-white/5 bg-[#0a0c14] hidden xl:flex flex-col">
+           <div className="h-10 border-b border-white/5 flex items-center justify-center gap-4 px-4 text-[10px] font-black text-zinc-500 uppercase">
+              <span className="text-white border-b border-yellow-500 py-2">Mises Actuelles</span>
+              <span>Mes Mises</span>
+              <span>Stats</span>
+           </div>
+           <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
+              {Array.from({ length: 15 }).map((_, i) => (
+                <div key={i} className="flex justify-between items-center text-[10px] text-zinc-500">
+                   <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-zinc-700" /> user_{Math.floor(Math.random()*1000)}</div>
+                   <div className="font-black text-white">{(10 + Math.random()*100).toFixed(2)} $</div>
+                </div>
+              ))}
+           </div>
+           <div className="p-4 border-t border-white/5 flex items-center justify-between text-[10px] font-black">
+              <span className="text-zinc-600">En ligne: 1032</span>
+              <span className="text-green-500">770 actifs</span>
+           </div>
         </div>
       </div>
     </div>

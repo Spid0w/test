@@ -3,53 +3,47 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useBalance } from "@/context/BalanceContext";
-import { ArrowUp, Car, Coins, RotateCcw, Trophy, Zap } from "lucide-react";
+import { ArrowRight, Coins, RotateCcw, Trophy, Zap, Truck, Car } from "lucide-react";
 
-const TOTAL_LANES = 10;
-const LANES = Array.from({ length: TOTAL_LANES });
+const TOTAL_STEPS = 10;
+const DIFFICULTIES = [
+  { id: "easy", name: "Easy", risk: 0.1, multiplier: 1.1 },
+  { id: "medium", name: "Medium", risk: 0.2, multiplier: 1.3 },
+  { id: "hard", name: "Hard", risk: 0.35, multiplier: 1.6 },
+  { id: "extreme", name: "Extreme", risk: 0.5, multiplier: 2.2 },
+];
 
 export function ChickenCrossing() {
   const { balance, updateBalance } = useBalance();
   const [bet, setBet] = useState(10);
-  const [currentLane, setCurrentLane] = useState(-1); // -1 = start
+  const [currentStep, setCurrentStep] = useState(-1);
   const [gameState, setGameState] = useState<"betting" | "playing" | "won" | "lost">("betting");
+  const [difficulty, setDifficulty] = useState(DIFFICULTIES[1]);
   const [multiplier, setMultiplier] = useState(1);
-  const [obstacles, setObstacles] = useState<number[][]>([]); // obstacle positions for each lane
 
   const startGame = () => {
     if (balance === null || balance < bet) return;
     updateBalance(-bet);
-    setCurrentLane(0);
+    setCurrentStep(0);
     setGameState("playing");
     setMultiplier(1.0);
-    generateObstacles();
-  };
-
-  const generateObstacles = () => {
-    // Each lane has a 30% to 50% chance of a "kill" zone for simplicity in this logic
-    // but the user wants to "see" it.
-    // For a real game, we'd have moving parts.
-    // Let's do a logic where each step has a risk.
   };
 
   const nextStep = () => {
     if (gameState !== "playing") return;
 
-    // Logic: 15% chance to get "hit" per step
-    const risk = 0.15;
-    if (Math.random() < risk) {
+    if (Math.random() < difficulty.risk) {
       setGameState("lost");
       return;
     }
 
-    const nextLane = currentLane + 1;
-    setCurrentLane(nextLane);
+    const next = currentStep + 1;
+    setCurrentStep(next);
     
-    // Multiplier increases exponentially
-    const newMult = Math.pow(1.3, nextLane + 1);
+    const newMult = Math.pow(difficulty.multiplier, next + 1);
     setMultiplier(newMult);
 
-    if (nextLane === TOTAL_LANES - 1) {
+    if (next === TOTAL_STEPS - 1) {
       handleWin(newMult);
     }
   };
@@ -60,154 +54,172 @@ export function ChickenCrossing() {
   };
 
   const cashOut = () => {
-    if (gameState === "playing" && currentLane >= 0) {
+    if (gameState === "playing" && currentStep >= 0) {
       handleWin(multiplier);
     }
   };
 
   return (
-    <div className="flex flex-col lg:flex-row gap-12 max-w-6xl mx-auto p-10 bg-zinc-900/50 backdrop-blur-xl rounded-[40px] border border-white/5 shadow-2xl overflow-hidden relative">
-      <div className="absolute top-0 right-0 w-64 h-64 bg-red-600/5 blur-[100px] pointer-events-none" />
-
-      {/* Controls */}
-      <div className="w-full lg:w-72 flex flex-col gap-8 relative z-10">
-        <div className="space-y-4">
-          <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">Stake</label>
-          <div className="relative">
-            <input 
-              type="number" 
-              value={bet}
-              onChange={(e) => setBet(Number(e.target.value))}
-              disabled={gameState !== "betting"}
-              className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 text-xl font-black text-white focus:outline-none focus:border-[#d4af37] transition-all"
-            />
-            <Coins className="absolute right-6 top-1/2 -translate-y-1/2 w-5 h-5 text-[#d4af37]" />
-          </div>
-        </div>
-
-        <div className="mt-auto space-y-4">
-          {gameState === "betting" ? (
-            <button 
-              onClick={startGame}
-              className="w-full py-6 bg-[#d4af37] text-black font-black uppercase tracking-widest rounded-2xl hover:scale-[1.02] active:scale-95 transition-all shadow-xl"
-            >
-              Start Journey
-            </button>
-          ) : gameState === "playing" ? (
-            <div className="space-y-4">
-              <button 
-                onClick={nextStep}
-                className="w-full py-6 bg-white text-black font-black uppercase tracking-widest rounded-2xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
-              >
-                <ArrowUp className="w-5 h-5" /> Move Forward
-              </button>
-              <button 
-                onClick={cashOut}
-                className="w-full py-4 bg-green-600 text-white font-black uppercase tracking-widest rounded-2xl hover:bg-green-500 transition-all flex flex-col items-center"
-              >
-                <span className="text-[10px] opacity-70">Cash Out</span>
-                <span className="text-lg">{(bet * multiplier).toFixed(2)}$</span>
-              </button>
+    <div className="flex flex-col gap-6 max-w-5xl mx-auto">
+      {/* Game Area */}
+      <div className="relative h-[400px] bg-[#2a2a2a] rounded-3xl border-4 border-[#1a1a1a] overflow-hidden shadow-2xl">
+        {/* Road Background */}
+        <div className="absolute inset-0 flex">
+          {Array.from({ length: TOTAL_STEPS + 1 }).map((_, i) => (
+            <div key={i} className="flex-1 border-r border-white/10 relative">
+               {/* Road stripes */}
+               <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-1 h-8 bg-white/20" />
+               <div className="absolute top-2/4 left-1/2 -translate-x-1/2 w-1 h-8 bg-white/20" />
+               <div className="absolute top-3/4 left-1/2 -translate-x-1/2 w-1 h-8 bg-white/20" />
+               
+               {/* Manholes (Multipliers) */}
+               {i > 0 && i <= TOTAL_STEPS && (
+                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-[#1a1a1a] border-4 border-[#333] flex items-center justify-center">
+                    <span className="text-[10px] font-black text-zinc-500">{Math.pow(difficulty.multiplier, i).toFixed(2)}x</span>
+                 </div>
+               )}
             </div>
-          ) : (
-            <button 
-              onClick={() => setGameState("betting")}
-              className="w-full py-6 bg-zinc-800 text-white font-black uppercase tracking-widest rounded-2xl hover:bg-zinc-700 transition-all flex items-center justify-center gap-2"
+          ))}
+        </div>
+
+        {/* Moving Vehicles (Visual Only) */}
+        <div className="absolute inset-0 pointer-events-none">
+           <motion.div 
+             animate={{ y: ["-100%", "500%"] }}
+             transition={{ repeat: Infinity, duration: 4, ease: "linear" }}
+             className="absolute left-[25%] opacity-40"
+           >
+              <Truck size={60} className="text-zinc-600 rotate-180" />
+           </motion.div>
+           <motion.div 
+             animate={{ y: ["500%", "-100%"] }}
+             transition={{ repeat: Infinity, duration: 3, ease: "linear", delay: 1 }}
+             className="absolute left-[65%] opacity-40"
+           >
+              <Car size={40} className="text-zinc-600" />
+           </motion.div>
+        </div>
+
+        {/* Chicken / Player */}
+        <AnimatePresence>
+          {gameState !== "betting" && (
+            <motion.div 
+              initial={{ x: 0 }}
+              animate={{ x: `${(currentStep + 1) * (100 / (TOTAL_STEPS + 1))}%` }}
+              className="absolute top-1/2 -translate-y-1/2 z-20 flex flex-col items-center"
+              style={{ width: `${100 / (TOTAL_STEPS + 1)}%` }}
             >
-              <RotateCcw className="w-5 h-5" /> Try Again
-            </button>
+               <div className="relative">
+                  <motion.div 
+                    animate={gameState === "playing" ? { y: [0, -10, 0] } : {}}
+                    transition={{ repeat: Infinity, duration: 0.5 }}
+                    className="text-4xl"
+                  >
+                    🐣
+                  </motion.div>
+                  {gameState === "playing" && (
+                    <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-[#d4af37] text-black text-[10px] font-black px-2 py-0.5 rounded shadow-lg whitespace-nowrap">
+                       {multiplier.toFixed(2)}x
+                    </div>
+                  )}
+               </div>
+            </motion.div>
           )}
-        </div>
-
-        {/* Multiplier Info */}
-        <div className="bg-black/40 p-6 rounded-2xl border border-white/5">
-           <div className="flex justify-between text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-4">
-             <span>Progress</span>
-             <span>{Math.max(0, currentLane + 1)} / {TOTAL_LANES}</span>
-           </div>
-           <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
-             <motion.div 
-               animate={{ width: `${((currentLane + 1) / TOTAL_LANES) * 100}%` }}
-               className="h-full bg-[#d4af37]" 
-             />
-           </div>
-        </div>
-      </div>
-
-      {/* Game Visuals (The Road) */}
-      <div className="flex-1 flex flex-col-reverse gap-2 bg-black/40 p-4 rounded-3xl border border-white/5 h-[600px] relative overflow-hidden">
-        {/* Lanes */}
-        {LANES.map((_, i) => (
-          <div 
-            key={i} 
-            className={`flex-1 relative rounded-lg border-y border-white/5 flex items-center justify-center transition-colors
-              ${currentLane === i ? "bg-white/5" : "bg-transparent"}
-            `}
-          >
-             {/* Lane divider */}
-             <div className="absolute top-0 w-full border-t border-dashed border-white/10" />
-             
-             {/* Lane Label */}
-             <span className="absolute left-4 text-[10px] font-black text-zinc-800 uppercase tracking-tighter">
-               LVL {i + 1} • {Math.pow(1.3, i + 1).toFixed(2)}x
-             </span>
-
-             {/* Cars (Decorative/Animated) */}
-             <motion.div 
-               animate={{ x: i % 2 === 0 ? ["-100%", "200%"] : ["200%", "-100%"] }}
-               transition={{ repeat: Infinity, duration: 3 + Math.random() * 2, ease: "linear" }}
-               className="absolute opacity-20"
-             >
-                <Car className={`w-8 h-8 text-zinc-600 ${i % 2 === 0 ? "" : "rotate-180"}`} />
-             </motion.div>
-
-             {/* Chicken position */}
-             {currentLane === i && gameState !== "lost" && (
-               <motion.div 
-                 layoutId="chicken"
-                 className="relative z-20 flex flex-col items-center"
-               >
-                  <img src="/logo.png" className="w-12 h-12 filter brightness-200 grayscale invert drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]" />
-                  <div className="absolute -bottom-8 bg-[#d4af37] text-black text-[10px] font-black px-2 py-0.5 rounded uppercase">YOU</div>
-               </motion.div>
-             )}
-          </div>
-        ))}
-
-        {/* Start Line */}
-        <div className={`h-12 border-t-4 border-dashed border-green-900/30 flex items-center justify-center ${currentLane === -1 ? "opacity-100" : "opacity-20"}`}>
-           <span className="text-[10px] font-black text-green-900 uppercase tracking-[1em]">SAFE ZONE</span>
-        </div>
+        </AnimatePresence>
 
         {/* Overlay States */}
         <AnimatePresence>
           {gameState === "lost" && (
             <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="absolute inset-0 z-50 bg-red-950/40 backdrop-blur-sm flex items-center justify-center"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              className="absolute inset-0 bg-red-950/60 backdrop-blur-md z-50 flex items-center justify-center"
             >
-               <div className="text-center p-8 bg-black rounded-3xl border border-red-500 shadow-2xl">
-                  <Car className="w-16 h-16 text-red-500 mx-auto mb-4 animate-bounce" />
-                  <h3 className="text-4xl font-black italic uppercase text-white tracking-tighter">CRASHED!</h3>
-                  <p className="text-zinc-500 font-bold mt-2 uppercase text-xs tracking-widest">The chicken didn't make it.</p>
+               <div className="text-center p-8 bg-black rounded-3xl border-4 border-red-500 shadow-2xl">
+                  <Truck className="w-20 h-20 text-red-500 mx-auto mb-4 animate-bounce" />
+                  <h3 className="text-5xl font-black italic uppercase text-white tracking-tighter">SQUASHED!</h3>
+                  <button onClick={() => setGameState("betting")} className="mt-6 px-8 py-3 bg-white text-black font-black uppercase text-sm rounded-xl">Try Again</button>
                </div>
             </motion.div>
           )}
           {gameState === "won" && (
             <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="absolute inset-0 z-50 bg-green-950/40 backdrop-blur-sm flex items-center justify-center"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              className="absolute inset-0 bg-green-950/60 backdrop-blur-md z-50 flex items-center justify-center"
             >
-               <div className="text-center p-8 bg-black rounded-3xl border border-[#d4af37] shadow-2xl">
-                  <Trophy className="w-16 h-16 text-[#d4af37] mx-auto mb-4 animate-pulse" />
-                  <h3 className="text-4xl font-black italic uppercase text-white tracking-tighter">SURVIVED!</h3>
-                  <div className="text-2xl font-black text-[#d4af37] mt-4">+{(bet * multiplier).toFixed(2)}$</div>
+               <div className="text-center p-8 bg-black rounded-3xl border-4 border-[#d4af37] shadow-2xl">
+                  <Trophy className="w-20 h-20 text-[#d4af37] mx-auto mb-4 animate-pulse" />
+                  <h3 className="text-5xl font-black italic uppercase text-white tracking-tighter">WINNER!</h3>
+                  <div className="text-3xl font-black text-[#d4af37] mt-4">+{(bet * multiplier).toFixed(2)}$</div>
+                  <button onClick={() => setGameState("betting")} className="mt-6 px-8 py-3 bg-[#d4af37] text-black font-black uppercase text-sm rounded-xl">Play More</button>
                </div>
             </motion.div>
           )}
         </AnimatePresence>
+      </div>
+
+      {/* Control Bar (Similar to Image 1) */}
+      <div className="bg-[#1a1a1a] p-6 rounded-3xl border border-white/10 flex flex-wrap items-center justify-between gap-6 shadow-xl">
+        <div className="flex gap-4 items-center">
+           <div className="space-y-1">
+             <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest">Stake</label>
+             <div className="flex bg-black rounded-xl p-1 border border-white/5">
+                <input 
+                  type="number" value={bet} 
+                  onChange={(e) => setBet(Number(e.target.value))}
+                  disabled={gameState !== "betting"}
+                  className="bg-transparent w-24 px-3 text-white font-black focus:outline-none"
+                />
+                <div className="flex gap-1">
+                   {[10, 50, 100].map(v => (
+                     <button key={v} onClick={() => setBet(v)} disabled={gameState !== "betting"} className="px-2 py-1 bg-zinc-800 rounded text-[10px] font-bold hover:bg-zinc-700 transition-colors">{v}</button>
+                   ))}
+                </div>
+             </div>
+           </div>
+
+           <div className="space-y-1">
+             <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest">Difficulty</label>
+             <div className="flex gap-2">
+                {DIFFICULTIES.map(d => (
+                  <button 
+                    key={d.id} 
+                    onClick={() => setDifficulty(d)}
+                    disabled={gameState !== "betting"}
+                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${difficulty.id === d.id ? "bg-white text-black" : "bg-zinc-800 text-zinc-500 hover:text-white"}`}
+                  >
+                    {d.name}
+                  </button>
+                ))}
+             </div>
+           </div>
+        </div>
+
+        <div className="flex gap-4">
+           {gameState === "playing" ? (
+             <>
+               <button 
+                 onClick={cashOut}
+                 className="px-10 py-4 bg-zinc-800 text-[#d4af37] border-2 border-[#d4af37]/20 font-black uppercase tracking-widest rounded-2xl hover:bg-zinc-700 transition-all flex flex-col items-center leading-none"
+               >
+                 <span className="text-[10px] mb-1 opacity-60">Cash Out</span>
+                 <span>{(bet * multiplier).toFixed(2)}$</span>
+               </button>
+               <button 
+                 onClick={nextStep}
+                 className="px-12 py-4 bg-[#22c55e] text-white font-black uppercase tracking-widest rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-lg"
+               >
+                 GO
+               </button>
+             </>
+           ) : (
+             <button 
+               onClick={startGame}
+               className="px-16 py-4 bg-[#22c55e] text-white font-black uppercase tracking-widest rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-lg shadow-green-500/10"
+             >
+               Start Game
+             </button>
+           )}
+        </div>
       </div>
     </div>
   );

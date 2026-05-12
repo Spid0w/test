@@ -2,6 +2,7 @@
 
 import { CrashGame } from "@/components/casino/CrashGame";
 import { useBalance } from "@/context/BalanceContext";
+import { BalanceModal } from "@/components/casino/BalanceModal";
 import { ArrowLeft, User } from "lucide-react";
 import Link from "next/link";
 
@@ -10,6 +11,7 @@ export default function CrashPage() {
 
   return (
     <main className="min-h-screen bg-[#050505] text-white selection:bg-[#d4af37] selection:text-black">
+      <BalanceModal />
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,#10101a,transparent)] pointer-events-none" />
       
       {/* Header */}
