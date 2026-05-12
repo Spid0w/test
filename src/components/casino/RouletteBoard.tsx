@@ -2,7 +2,6 @@
 
 import { motion } from "framer-motion";
 import { useMemo } from "react";
-import { calculateWin } from "@/lib/roulette-utils";
 
 interface RouletteBoardProps {
   onPlaceBet: (type: string, id: string, amount: number) => void;
@@ -12,6 +11,58 @@ interface RouletteBoardProps {
 }
 
 const REDS = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
+
+/**
+ * For a given number n, returns the NET PROFIT (excluding losing bets)
+ * from all bets that would WIN if n hits.
+ * e.g. 1€ on 32 + 1€ corner 31-32-34-35 → if 32 hits: 35 + 8 = +43€
+ */
+function calcProfitIfHits(n: number, bets: Record<string, number>): number | undefined {
+  const isRed = REDS.includes(n);
+  const isEven = n !== 0 && n % 2 === 0;
+  let profit = 0;
+  let hasWinner = false;
+
+  for (const [betId, amount] of Object.entries(bets)) {
+    let profitMult = 0;
+    if (!isNaN(parseInt(betId))) {
+      if (parseInt(betId) === n) profitMult = 35;
+    } else if (betId.startsWith("split_") || betId.startsWith("corner_") || betId.startsWith("nums_")) {
+      const nums = betId.split("_").slice(1).map(Number);
+      if (nums.includes(n)) profitMult = (36 / nums.length) - 1;
+    } else if (betId === "doz1" && n >= 1 && n <= 12)   profitMult = 2;
+    else if (betId === "doz2" && n >= 13 && n <= 24)    profitMult = 2;
+    else if (betId === "doz3" && n >= 25 && n <= 36)    profitMult = 2;
+    else if (betId === "col1" && n !== 0 && (n - 1) % 3 === 0) profitMult = 2;
+    else if (betId === "col2" && n !== 0 && (n - 2) % 3 === 0) profitMult = 2;
+    else if (betId === "col3" && n !== 0 && n % 3 === 0)        profitMult = 2;
+    else if (betId === "red"   && isRed)                  profitMult = 1;
+    else if (betId === "black" && !isRed && n !== 0)      profitMult = 1;
+    else if (betId === "even"  && isEven)                 profitMult = 1;
+    else if (betId === "odd"   && !isEven && n !== 0)     profitMult = 1;
+    else if (betId === "low"   && n >= 1 && n <= 18)      profitMult = 1;
+    else if (betId === "high"  && n >= 19 && n <= 36)     profitMult = 1;
+
+    if (profitMult > 0) {
+      profit += amount * profitMult;
+      hasWinner = true;
+    }
+  }
+  return hasWinner ? profit : undefined;
+}
+
+/** Net profit multiplier for a single outside/inside bet id */
+function getProfitMultiplier(id: string): number {
+  if (!isNaN(parseInt(id))) return 35;
+  if (id.startsWith("nums_")) {
+    const count = id.split("_").length - 1;
+    return Math.round(36 / count) - 1;
+  }
+  if (id.startsWith("split_"))  return 17;
+  if (id.startsWith("corner_")) return 8;
+  if (id.startsWith("doz") || id.startsWith("col")) return 2;
+  return 1; // red, black, even, odd, low, high
+}
 
 export function RouletteBoard({ onPlaceBet, activeBets, currentChip, isEraserMode = false }: RouletteBoardProps) {
   const isRed = (num: number) => REDS.includes(num);
@@ -23,34 +74,20 @@ export function RouletteBoard({ onPlaceBet, activeBets, currentChip, isEraserMod
 
   const numberCols = useMemo(() => {
     return Array.from({ length: 12 }, (_, col) => {
-      return [ (col * 3) + 3, (col * 3) + 2, (col * 3) + 1 ];
+      return [(col * 3) + 3, (col * 3) + 2, (col * 3) + 1];
     });
   }, []);
 
-  // Pre-compute potential net win for every number 0-36 given current bets.
-  // net = finalWin (what is returned to you) minus totalBet (what you staked).
+  // Net profit per number (0-36) from all covering bets
   const potentialWins = useMemo(() => {
     const map: Record<number, number> = {};
-    const totalBet = Object.values(activeBets).reduce((a, b) => a + b, 0);
-    if (totalBet === 0) return map;
+    if (Object.keys(activeBets).length === 0) return map;
     for (let n = 0; n <= 36; n++) {
-      const { finalWin } = calculateWin(n, activeBets);
-      if (finalWin > 0) map[n] = finalWin - totalBet;
+      const profit = calcProfitIfHits(n, activeBets);
+      if (profit !== undefined) map[n] = profit;
     }
     return map;
   }, [activeBets]);
-
-  const getPayoutMultiplier = (id: string) => {
-    if (!isNaN(parseInt(id))) return 36;
-    if (id.startsWith("nums_")) {
-      const count = id.split("_").length - 1; // e.g. nums_0_3_2 → 3 numbers
-      return Math.round(36 / count);
-    }
-    if (id.startsWith("split_")) return 18;
-    if (id.startsWith("corner_")) return 9;
-    if (id.startsWith("doz") || id.startsWith("col")) return 3;
-    return 2; // red, black, even, odd, low, high
-  };
 
   const renderChip = (id: string) => {
     const amount = activeBets[id] || 0;
@@ -66,33 +103,35 @@ export function RouletteBoard({ onPlaceBet, activeBets, currentChip, isEraserMod
     );
   };
 
-  const renderPayout = (id: string) => {
+  /** Badge showing net profit for a specific outside bet cell */
+  const renderOutsideProfit = (id: string) => {
     const amount = activeBets[id] || 0;
     if (amount === 0) return null;
-    const payout = amount * getPayoutMultiplier(id);
+    const profit = amount * getProfitMultiplier(id);
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 5 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-black text-[#d4af37] pointer-events-none drop-shadow-md z-40 bg-black/40 px-1 rounded"
+      <motion.span
+        key={profit}
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="text-[9px] font-black text-emerald-400 leading-none drop-shadow"
       >
-        {payout.toFixed(0)}€
-      </motion.div>
+        +{profit % 1 === 0 ? profit.toFixed(0) : profit.toFixed(1)}€
+      </motion.span>
     );
   };
 
-  // Renders the combined potential gain badge on a number cell (0-36)
+  /** Badge showing combined net profit if number `num` hits */
   const renderWinBadge = (num: number) => {
-    const net = potentialWins[num];
-    if (net === undefined) return null;
+    const profit = potentialWins[num];
+    if (profit === undefined) return null;
     return (
       <motion.span
-        key={net}
+        key={profit}
         initial={{ opacity: 0, scale: 0.7 }}
         animate={{ opacity: 1, scale: 1 }}
-        className={`relative z-10 text-[8px] font-black leading-none mt-0.5 drop-shadow ${net >= 0 ? "text-emerald-300" : "text-orange-300"}`}
+        className="relative z-10 text-[8px] font-black leading-none mt-0.5 text-emerald-300 drop-shadow"
       >
-        {net >= 0 ? "+" : ""}{net % 1 === 0 ? net.toFixed(0) : net.toFixed(1)}€
+        +{profit % 1 === 0 ? profit.toFixed(0) : profit.toFixed(1)}€
       </motion.span>
     );
   };
@@ -100,191 +139,170 @@ export function RouletteBoard({ onPlaceBet, activeBets, currentChip, isEraserMod
   return (
     <div className={`w-full bg-[#0a1a0a] p-4 rounded-xl border-4 border-[#3f2b1d] shadow-2xl relative select-none transition-all ${isEraserMode ? "cursor-crosshair ring-2 ring-red-500/50 shadow-[0_0_20px_rgba(255,0,0,0.1)]" : "cursor-default"}`}>
       <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/felt.png')] pointer-events-none" />
-      
+
       <div className="relative z-10 flex flex-col gap-1">
-        
+
         {/* Main Grid Area */}
         <div className="flex h-[240px] md:h-[300px]">
-          
+
           {/* Zero */}
           <div className="relative w-12 md:w-16 h-full mr-1">
-             <button
-               onClick={() => onPlaceBet("single", "0", currentChip)}
-               className={`w-full h-full rounded-l-lg border border-gold/30 ${getNumberColor(0)} flex flex-col items-center justify-center font-bold text-lg relative group`}
-             >
-               <span className="relative z-10 leading-none">0</span>
-               {renderWinBadge(0)}
-               {renderChip("0")}
-               <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity ${isEraserMode ? "bg-red-500/20" : "bg-white/5"}`} />
-             </button>
+            <button
+              onClick={() => onPlaceBet("single", "0", currentChip)}
+              className={`w-full h-full rounded-l-lg border border-gold/30 ${getNumberColor(0)} flex flex-col items-center justify-center font-bold text-lg relative group`}
+            >
+              <span className="relative z-10 leading-none">0</span>
+              {renderWinBadge(0)}
+              {renderChip("0")}
+              <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity ${isEraserMode ? "bg-red-500/20" : "bg-white/5"}`} />
+            </button>
           </div>
 
           {/* Numbers Grid */}
           <div className="flex-1 grid grid-cols-12 gap-1 relative z-20 h-full">
-             {numberCols.map((col, colIdx) => (
-               <div key={colIdx} className="flex flex-col gap-1">
-                 {col.map((num, rowIdx) => (
-                   <div key={num} className="relative flex-1">
-                     <button
-                       onClick={() => onPlaceBet("single", num.toString(), currentChip)}
-                       className={`w-full h-full border border-gold/10 ${getNumberColor(num)} flex flex-col items-center justify-center font-bold text-sm md:text-base relative group`}
-                     >
-                       <span className="relative z-10 leading-none">{num}</span>
-                       {renderWinBadge(num)}
-                       {renderChip(num.toString())}
-                       <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity ${isEraserMode ? "bg-red-500/20" : "bg-white/5"}`} />
-                     </button>
+            {numberCols.map((col, colIdx) => (
+              <div key={colIdx} className="flex flex-col gap-1">
+                {col.map((num, rowIdx) => (
+                  <div key={num} className="relative flex-1">
+                    <button
+                      onClick={() => onPlaceBet("single", num.toString(), currentChip)}
+                      className={`w-full h-full border border-gold/10 ${getNumberColor(num)} flex flex-col items-center justify-center font-bold text-sm md:text-base relative group`}
+                    >
+                      <span className="relative z-10 leading-none">{num}</span>
+                      {renderWinBadge(num)}
+                      {renderChip(num.toString())}
+                      <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity ${isEraserMode ? "bg-red-500/20" : "bg-white/5"}`} />
+                    </button>
 
-                     {/* Zero boundary hitboxes (Splits, Trios, First Four) */}
-                     {colIdx === 0 && (
-                        <>
-                          {/* Split 0-num */}
-                          <button
-                            onClick={(e) => { e.stopPropagation(); onPlaceBet("split", `split_0_${num}`, currentChip); }}
-                            className={`absolute top-1/4 bottom-1/4 -left-3 w-6 z-40 flex items-center justify-center transition-all ${activeBets[`split_0_${num}`] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/40")}`}
-                          >
-                            {renderChip(`split_0_${num}`)}
-                            {isEraserMode && activeBets[`split_0_${num}`] && <div className="absolute inset-0 bg-red-500/20" />}
-                          </button>
-
-                          {/* Trios (0-2-3, 0-1-2) */}
-                          {rowIdx < 2 && (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); onPlaceBet("nums", `nums_0_${num}_${num-1}`, currentChip); }}
-                              className={`absolute -bottom-3 -left-3 w-6 h-6 rounded-full z-50 flex items-center justify-center transition-all ${activeBets[`nums_0_${num}_${num-1}`] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/40")}`}
-                            >
-                              {renderChip(`nums_0_${num}_${num-1}`)}
-                              {isEraserMode && activeBets[`nums_0_${num}_${num-1}`] && <div className="absolute inset-0 bg-red-500/20 rounded-full" />}
-                            </button>
-                          )}
-
-                          {/* First Four (Corner 0-1-2-3) - Top */}
-                          {rowIdx === 0 && (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); onPlaceBet("corner", "corner_0_1_2_3", currentChip); }}
-                              className={`absolute -top-3 -left-3 w-6 h-6 rounded-full z-50 flex items-center justify-center transition-all ${activeBets["corner_0_1_2_3"] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/40")}`}
-                            >
-                              {renderChip("corner_0_1_2_3")}
-                              {isEraserMode && activeBets["corner_0_1_2_3"] && <div className="absolute inset-0 bg-red-500/20 rounded-full" />}
-                            </button>
-                          )}
-
-                          {/* First Four (Corner 0-1-2-3) - Bottom */}
-                          {rowIdx === 2 && (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); onPlaceBet("corner", "corner_0_1_2_3", currentChip); }}
-                              className={`absolute -bottom-3 -left-3 w-6 h-6 rounded-full z-50 flex items-center justify-center transition-all ${activeBets["corner_0_1_2_3"] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/40")}`}
-                            >
-                              {renderChip("corner_0_1_2_3")}
-                              {isEraserMode && activeBets["corner_0_1_2_3"] && <div className="absolute inset-0 bg-red-500/20 rounded-full" />}
-                            </button>
-                          )}
-                        </>
-                     )}
-
-                     {/* Hitboxes for Duo / Carré */}
-                     {colIdx < 11 && (
-                       <button
-                         onClick={(e) => { e.stopPropagation(); onPlaceBet("split", `split_${num}_${num+3}`, currentChip); }}
-                         className={`absolute top-1/4 bottom-1/4 -right-2.5 w-5 z-30 flex items-center justify-center transition-all ${activeBets[`split_${num}_${num+3}`] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/20")}`}
-                       >
-                         {renderChip(`split_${num}_${num+3}`)}
-                         {isEraserMode && activeBets[`split_${num}_${num+3}`] && <div className="absolute inset-0 bg-red-500/20" />}
-                       </button>
-                     )}
-
-                     {rowIdx < 2 && (
-                       <button
-                         onClick={(e) => { e.stopPropagation(); onPlaceBet("split", `split_${num}_${num-1}`, currentChip); }}
-                         className={`absolute -bottom-2.5 left-1/4 right-1/4 h-5 z-30 flex items-center justify-center transition-all ${activeBets[`split_${num}_${num-1}`] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/20")}`}
-                       >
-                         {renderChip(`split_${num}_${num-1}`)}
-                         {isEraserMode && activeBets[`split_${num}_${num-1}`] && <div className="absolute inset-0 bg-red-500/20" />}
-                       </button>
-                     )}
-
-                     {colIdx < 11 && rowIdx < 2 && (
+                    {/* Zero boundary hitboxes */}
+                    {colIdx === 0 && (
+                      <>
+                        {/* Split 0-num */}
                         <button
-                          onClick={(e) => { e.stopPropagation(); onPlaceBet("corner", `corner_${num}_${num-1}_${num+3}_${num+2}`, currentChip); }}
-                          className={`absolute -bottom-3 -right-3 w-6 h-6 rounded-full z-40 flex items-center justify-center transition-all ${activeBets[`corner_${num}_${num-1}_${num+3}_${num+2}`] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/40")}`}
+                          onClick={(e) => { e.stopPropagation(); onPlaceBet("split", `split_0_${num}`, currentChip); }}
+                          className={`absolute top-1/4 bottom-1/4 -left-3 w-6 z-40 flex items-center justify-center transition-all ${activeBets[`split_0_${num}`] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/40")}`}
                         >
-                           {renderChip(`corner_${num}_${num-1}_${num+3}_${num+2}`)}
-                           {isEraserMode && activeBets[`corner_${num}_${num-1}_${num+3}_${num+2}`] && <div className="absolute inset-0 bg-red-500/20 rounded-full" />}
+                          {renderChip(`split_0_${num}`)}
+                          {isEraserMode && activeBets[`split_0_${num}`] && <div className="absolute inset-0 bg-red-500/20" />}
                         </button>
-                     )}
-                   </div>
-                 ))}
-               </div>
-             ))}
+
+                        {/* Trios */}
+                        {rowIdx < 2 && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onPlaceBet("nums", `nums_0_${num}_${num - 1}`, currentChip); }}
+                            className={`absolute -bottom-3 -left-3 w-6 h-6 rounded-full z-50 flex items-center justify-center transition-all ${activeBets[`nums_0_${num}_${num - 1}`] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/40")}`}
+                          >
+                            {renderChip(`nums_0_${num}_${num - 1}`)}
+                            {isEraserMode && activeBets[`nums_0_${num}_${num - 1}`] && <div className="absolute inset-0 bg-red-500/20 rounded-full" />}
+                          </button>
+                        )}
+
+                        {/* First Four - Top */}
+                        {rowIdx === 0 && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onPlaceBet("corner", "corner_0_1_2_3", currentChip); }}
+                            className={`absolute -top-3 -left-3 w-6 h-6 rounded-full z-50 flex items-center justify-center transition-all ${activeBets["corner_0_1_2_3"] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/40")}`}
+                          >
+                            {renderChip("corner_0_1_2_3")}
+                            {isEraserMode && activeBets["corner_0_1_2_3"] && <div className="absolute inset-0 bg-red-500/20 rounded-full" />}
+                          </button>
+                        )}
+
+                        {/* First Four - Bottom */}
+                        {rowIdx === 2 && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onPlaceBet("corner", "corner_0_1_2_3", currentChip); }}
+                            className={`absolute -bottom-3 -left-3 w-6 h-6 rounded-full z-50 flex items-center justify-center transition-all ${activeBets["corner_0_1_2_3"] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/40")}`}
+                          >
+                            {renderChip("corner_0_1_2_3")}
+                            {isEraserMode && activeBets["corner_0_1_2_3"] && <div className="absolute inset-0 bg-red-500/20 rounded-full" />}
+                          </button>
+                        )}
+                      </>
+                    )}
+
+                    {/* Split horizontal (entre colonnes) */}
+                    {colIdx < 11 && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onPlaceBet("split", `split_${num}_${num + 3}`, currentChip); }}
+                        className={`absolute top-1/4 bottom-1/4 -right-2.5 w-5 z-30 flex items-center justify-center transition-all ${activeBets[`split_${num}_${num + 3}`] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/20")}`}
+                      >
+                        {renderChip(`split_${num}_${num + 3}`)}
+                        {isEraserMode && activeBets[`split_${num}_${num + 3}`] && <div className="absolute inset-0 bg-red-500/20" />}
+                      </button>
+                    )}
+
+                    {/* Split vertical (entre lignes) */}
+                    {rowIdx < 2 && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onPlaceBet("split", `split_${num}_${num - 1}`, currentChip); }}
+                        className={`absolute -bottom-2.5 left-1/4 right-1/4 h-5 z-30 flex items-center justify-center transition-all ${activeBets[`split_${num}_${num - 1}`] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/20")}`}
+                      >
+                        {renderChip(`split_${num}_${num - 1}`)}
+                        {isEraserMode && activeBets[`split_${num}_${num - 1}`] && <div className="absolute inset-0 bg-red-500/20" />}
+                      </button>
+                    )}
+
+                    {/* Carré */}
+                    {colIdx < 11 && rowIdx < 2 && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onPlaceBet("corner", `corner_${num}_${num - 1}_${num + 3}_${num + 2}`, currentChip); }}
+                        className={`absolute -bottom-3 -right-3 w-6 h-6 rounded-full z-40 flex items-center justify-center transition-all ${activeBets[`corner_${num}_${num - 1}_${num + 3}_${num + 2}`] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/40")}`}
+                      >
+                        {renderChip(`corner_${num}_${num - 1}_${num + 3}_${num + 2}`)}
+                        {isEraserMode && activeBets[`corner_${num}_${num - 1}_${num + 3}_${num + 2}`] && <div className="absolute inset-0 bg-red-500/20 rounded-full" />}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ))}
           </div>
 
           {/* Columns */}
           <div className="flex flex-col gap-1 w-10 md:w-16 ml-1">
-             {["col3", "col2", "col1"].map((id, i) => (
-                <button key={id} onClick={() => onPlaceBet("column", id, currentChip)} className={`flex-1 border border-gold/20 bg-zinc-800/60 text-[10px] md:text-xs font-black hover:bg-zinc-700 relative flex items-center justify-center group ${i === 0 ? "rounded-tr-lg" : i === 2 ? "rounded-br-lg" : ""}`}>
-                  <div className="flex flex-col items-center">
-                    <span>2:1</span>
-                    {renderPayout(id)}
-                  </div>
-                  {renderChip(id)}
-                  <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity ${isEraserMode ? "bg-red-500/20" : "bg-white/5"}`} />
-                </button>
-             ))}
+            {["col3", "col2", "col1"].map((id, i) => (
+              <button key={id} onClick={() => onPlaceBet("column", id, currentChip)} className={`flex-1 border border-gold/20 bg-zinc-800/60 text-[10px] md:text-xs font-black hover:bg-zinc-700 relative flex flex-col items-center justify-center group ${i === 0 ? "rounded-tr-lg" : i === 2 ? "rounded-br-lg" : ""}`}>
+                <span>2:1</span>
+                {renderOutsideProfit(id)}
+                {renderChip(id)}
+                <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity ${isEraserMode ? "bg-red-500/20" : "bg-white/5"}`} />
+              </button>
+            ))}
           </div>
         </div>
 
         {/* Dozens */}
         <div className="flex gap-1 h-12 md:h-14 ml-14 md:ml-20">
-           {["doz1", "doz2", "doz3"].map((id, i) => (
-             <button key={id} onClick={() => onPlaceBet("dozen", id, currentChip)} className="flex-1 bg-zinc-900/40 border border-gold/20 text-xs font-bold hover:bg-zinc-800 relative flex flex-col items-center justify-center group">
-                <span className="mb-1">{i+1}ère 12</span>
-                {renderChip(id)}
-                {renderPayout(id)}
-                <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity ${isEraserMode ? "bg-red-500/20" : "bg-white/5"}`} />
-             </button>
-           ))}
-           <div className="w-10 md:w-16" />
+          {["doz1", "doz2", "doz3"].map((id, i) => (
+            <button key={id} onClick={() => onPlaceBet("dozen", id, currentChip)} className="flex-1 bg-zinc-900/40 border border-gold/20 text-xs font-bold hover:bg-zinc-800 relative flex flex-col items-center justify-center group">
+              <span className="mb-0.5">{i + 1}ère 12</span>
+              {renderOutsideProfit(id)}
+              {renderChip(id)}
+              <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity ${isEraserMode ? "bg-red-500/20" : "bg-white/5"}`} />
+            </button>
+          ))}
+          <div className="w-10 md:w-16" />
         </div>
 
         {/* Outside Bets */}
         <div className="flex gap-1 h-14 md:h-16 ml-14 md:ml-20 font-bold text-xs uppercase">
-           <button onClick={() => onPlaceBet("half", "low", currentChip)} className="flex-1 bg-zinc-900/80 rounded-bl-lg border border-gold/10 hover:bg-zinc-800 relative flex flex-col items-center justify-center group">
-             <span>1-18</span>
-             {renderChip("low")}
-             {renderPayout("low")}
-             <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity ${isEraserMode ? "bg-red-500/20" : "bg-white/5"}`} />
-           </button>
-           <button onClick={() => onPlaceBet("half", "even", currentChip)} className="flex-1 bg-zinc-900/80 border border-gold/10 hover:bg-zinc-800 relative flex flex-col items-center justify-center group">
-             <span>Pair</span>
-             {renderChip("even")}
-             {renderPayout("even")}
-             <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity ${isEraserMode ? "bg-red-500/20" : "bg-white/5"}`} />
-           </button>
-           <button onClick={() => onPlaceBet("half", "red", currentChip)} className="flex-1 bg-red-900/40 border border-gold/10 text-red-500 hover:bg-red-900/60 relative flex flex-col items-center justify-center group">
-             <span>Rouge</span>
-             {renderChip("red")}
-             {renderPayout("red")}
-             <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity ${isEraserMode ? "bg-red-500/20" : "bg-white/10"}`} />
-           </button>
-           <button onClick={() => onPlaceBet("half", "black", currentChip)} className="flex-1 bg-black/60 border border-gold/10 text-zinc-400 hover:bg-black relative flex flex-col items-center justify-center group">
-             <span>Noir</span>
-             {renderChip("black")}
-             {renderPayout("black")}
-             <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity ${isEraserMode ? "bg-red-500/20" : "bg-white/5"}`} />
-           </button>
-           <button onClick={() => onPlaceBet("half", "odd", currentChip)} className="flex-1 bg-zinc-900/80 border border-gold/10 hover:bg-zinc-800 relative flex flex-col items-center justify-center group">
-             <span>Impair</span>
-             {renderChip("odd")}
-             {renderPayout("odd")}
-             <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity ${isEraserMode ? "bg-red-500/20" : "bg-white/5"}`} />
-           </button>
-           <button onClick={() => onPlaceBet("half", "high", currentChip)} className="flex-1 bg-zinc-900/80 rounded-br-lg border border-gold/10 hover:bg-zinc-800 relative flex flex-col items-center justify-center group">
-             <span>19-36</span>
-             {renderChip("high")}
-             {renderPayout("high")}
-             <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity ${isEraserMode ? "bg-red-500/20" : "bg-white/5"}`} />
-           </button>
-           <div className="w-10 md:w-16" />
+          {[
+            { id: "low",   label: "1-18",   cls: "rounded-bl-lg bg-zinc-900/80 border-gold/10 hover:bg-zinc-800" },
+            { id: "even",  label: "Pair",   cls: "bg-zinc-900/80 border-gold/10 hover:bg-zinc-800" },
+            { id: "red",   label: "Rouge",  cls: "bg-red-900/40 border-gold/10 text-red-500 hover:bg-red-900/60" },
+            { id: "black", label: "Noir",   cls: "bg-black/60 border-gold/10 text-zinc-400 hover:bg-black" },
+            { id: "odd",   label: "Impair", cls: "bg-zinc-900/80 border-gold/10 hover:bg-zinc-800" },
+            { id: "high",  label: "19-36",  cls: "rounded-br-lg bg-zinc-900/80 border-gold/10 hover:bg-zinc-800" },
+          ].map(({ id, label, cls }) => (
+            <button key={id} onClick={() => onPlaceBet("half", id, currentChip)} className={`flex-1 border relative flex flex-col items-center justify-center group ${cls}`}>
+              <span>{label}</span>
+              {renderOutsideProfit(id)}
+              {renderChip(id)}
+              <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity ${isEraserMode ? "bg-red-500/20" : "bg-white/5"}`} />
+            </button>
+          ))}
+          <div className="w-10 md:w-16" />
         </div>
       </div>
     </div>
