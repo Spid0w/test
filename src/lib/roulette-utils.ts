@@ -13,7 +13,6 @@ export function calculateWin(result: number, bets: Record<string, number>): WinR
   let totalWin = 0;
   const isResultRed = REDS.includes(result);
   const isResultEven = result !== 0 && result % 2 === 0;
-  const totalBet = Object.values(bets).reduce((a, b) => a + b, 0);
 
   Object.entries(bets).forEach(([betId, amount]) => {
     if (!isNaN(parseInt(betId))) {
@@ -34,12 +33,8 @@ export function calculateWin(result: number, bets: Record<string, number>): WinR
     else if (betId === "low" && result >= 1 && result <= 18) totalWin += amount * 2;
     else if (betId === "high" && result >= 19 && result <= 36) totalWin += amount * 2;
   });
-  const isPartage = false;
   const finalWin = totalWin;
-
-  // The 50% refund on even money bets for 0 is removed as requested.
-  // result === 0 now causes a total loss for outside bets.
-  return { totalWin, isPartage, finalWin };
+  return { totalWin, isPartage: false, finalWin };
 }
 
 export function generateResult(): number {

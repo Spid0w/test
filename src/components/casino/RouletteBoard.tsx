@@ -28,6 +28,11 @@ export function RouletteBoard({ onPlaceBet, activeBets, currentChip, isEraserMod
 
   const getPayoutMultiplier = (id: string) => {
     if (!isNaN(parseInt(id))) return 36;
+    if (id.startsWith("nums_")) {
+      // Trio (3 numbers): pays 12:1
+      const count = id.split("_").length - 1; // e.g. nums_0_3_2 → 3 numbers
+      return Math.round(36 / count);
+    }
     if (id.startsWith("split_")) return 18;
     if (id.startsWith("corner_")) return 9;
     if (id.startsWith("doz") || id.startsWith("col")) return 3;
@@ -202,7 +207,7 @@ export function RouletteBoard({ onPlaceBet, activeBets, currentChip, isEraserMod
         {/* Dozens */}
         <div className="flex gap-1 h-12 md:h-14 ml-14 md:ml-20">
            {["doz1", "doz2", "doz3"].map((id, i) => (
-             <button key={id} onClick={() => onPlaceBet("dozen", id, currentChip)} className="flex-1 bg-zinc-900/40 border border-gold/20 text-xs font-bold hover:bg-zinc-800 relative flex items-center justify-center group flex-col">
+             <button key={id} onClick={() => onPlaceBet("dozen", id, currentChip)} className="flex-1 bg-zinc-900/40 border border-gold/20 text-xs font-bold hover:bg-zinc-800 relative flex flex-col items-center justify-center group">
                 <span className="mb-1">{i+1}ère 12</span>
                 {renderChip(id)}
                 {renderPayout(id)}
