@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useBalance } from "@/context/BalanceContext";
-import { Bomb, Coins, Diamond, Play, RotateCcw, Settings, Zap, History, LayoutGrid, Info, Trash2, HelpCircle, Volume2, Search, Home, ChevronRight, Menu } from "lucide-react";
+import { Bomb, Coins, Diamond, Play, RotateCcw, Settings, Zap, History, LayoutGrid, Info, Trash2, HelpCircle, Volume2, Search, Home, ChevronRight, Menu, Plus, Minus } from "lucide-react";
 
 const GRID_SIZE = 25;
 
