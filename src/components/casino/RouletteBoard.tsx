@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useMemo } from "react";
+import { calculateWin } from "@/lib/roulette-utils";
 
 interface RouletteBoardProps {
   onPlaceBet: (type: string, id: string, amount: number) => void;
@@ -26,10 +27,22 @@ export function RouletteBoard({ onPlaceBet, activeBets, currentChip, isEraserMod
     });
   }, []);
 
+  // Pre-compute potential net win for every number 0-36 given current bets.
+  // net = finalWin (what is returned to you) minus totalBet (what you staked).
+  const potentialWins = useMemo(() => {
+    const map: Record<number, number> = {};
+    const totalBet = Object.values(activeBets).reduce((a, b) => a + b, 0);
+    if (totalBet === 0) return map;
+    for (let n = 0; n <= 36; n++) {
+      const { finalWin } = calculateWin(n, activeBets);
+      if (finalWin > 0) map[n] = finalWin - totalBet;
+    }
+    return map;
+  }, [activeBets]);
+
   const getPayoutMultiplier = (id: string) => {
     if (!isNaN(parseInt(id))) return 36;
     if (id.startsWith("nums_")) {
-      // Trio (3 numbers): pays 12:1
       const count = id.split("_").length - 1; // e.g. nums_0_3_2 → 3 numbers
       return Math.round(36 / count);
     }
@@ -58,13 +71,29 @@ export function RouletteBoard({ onPlaceBet, activeBets, currentChip, isEraserMod
     if (amount === 0) return null;
     const payout = amount * getPayoutMultiplier(id);
     return (
-      <motion.div 
-        initial={{ opacity: 0, y: 5 }} 
+      <motion.div
+        initial={{ opacity: 0, y: 5 }}
         animate={{ opacity: 1, y: 0 }}
         className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-black text-[#d4af37] pointer-events-none drop-shadow-md z-40 bg-black/40 px-1 rounded"
       >
         {payout.toFixed(0)}€
       </motion.div>
+    );
+  };
+
+  // Renders the combined potential gain badge on a number cell (0-36)
+  const renderWinBadge = (num: number) => {
+    const net = potentialWins[num];
+    if (net === undefined) return null;
+    return (
+      <motion.span
+        key={net}
+        initial={{ opacity: 0, scale: 0.7 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className={`relative z-10 text-[8px] font-black leading-none mt-0.5 drop-shadow ${net >= 0 ? "text-emerald-300" : "text-orange-300"}`}
+      >
+        {net >= 0 ? "+" : ""}{net % 1 === 0 ? net.toFixed(0) : net.toFixed(1)}€
+      </motion.span>
     );
   };
 
@@ -81,11 +110,11 @@ export function RouletteBoard({ onPlaceBet, activeBets, currentChip, isEraserMod
           <div className="relative w-12 md:w-16 h-full mr-1">
              <button
                onClick={() => onPlaceBet("single", "0", currentChip)}
-               className={`w-full h-full rounded-l-lg border border-gold/30 ${getNumberColor(0)} flex items-center justify-center font-bold text-lg relative group`}
+               className={`w-full h-full rounded-l-lg border border-gold/30 ${getNumberColor(0)} flex flex-col items-center justify-center font-bold text-lg relative group`}
              >
-               0
+               <span className="relative z-10 leading-none">0</span>
+               {renderWinBadge(0)}
                {renderChip("0")}
-               {renderPayout("0")}
                <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity ${isEraserMode ? "bg-red-500/20" : "bg-white/5"}`} />
              </button>
           </div>
@@ -98,11 +127,11 @@ export function RouletteBoard({ onPlaceBet, activeBets, currentChip, isEraserMod
                    <div key={num} className="relative flex-1">
                      <button
                        onClick={() => onPlaceBet("single", num.toString(), currentChip)}
-                       className={`w-full h-full border border-gold/10 ${getNumberColor(num)} flex items-center justify-center font-bold text-sm md:text-base relative group`}
+                       className={`w-full h-full border border-gold/10 ${getNumberColor(num)} flex flex-col items-center justify-center font-bold text-sm md:text-base relative group`}
                      >
-                       <span className="relative z-10">{num}</span>
+                       <span className="relative z-10 leading-none">{num}</span>
+                       {renderWinBadge(num)}
                        {renderChip(num.toString())}
-                       {renderPayout(num.toString())}
                        <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity ${isEraserMode ? "bg-red-500/20" : "bg-white/5"}`} />
                      </button>
 
@@ -219,37 +248,37 @@ export function RouletteBoard({ onPlaceBet, activeBets, currentChip, isEraserMod
 
         {/* Outside Bets */}
         <div className="flex gap-1 h-14 md:h-16 ml-14 md:ml-20 font-bold text-xs uppercase">
-           <button onClick={() => onPlaceBet("half", "low", currentChip)} className="flex-1 bg-zinc-900/80 rounded-bl-lg border border-gold/10 hover:bg-zinc-800 relative flex items-center justify-center group flex-col">
+           <button onClick={() => onPlaceBet("half", "low", currentChip)} className="flex-1 bg-zinc-900/80 rounded-bl-lg border border-gold/10 hover:bg-zinc-800 relative flex flex-col items-center justify-center group">
              <span>1-18</span>
              {renderChip("low")}
              {renderPayout("low")}
              <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity ${isEraserMode ? "bg-red-500/20" : "bg-white/5"}`} />
            </button>
-           <button onClick={() => onPlaceBet("half", "even", currentChip)} className="flex-1 bg-zinc-900/80 border border-gold/10 hover:bg-zinc-800 relative flex items-center justify-center group flex-col">
+           <button onClick={() => onPlaceBet("half", "even", currentChip)} className="flex-1 bg-zinc-900/80 border border-gold/10 hover:bg-zinc-800 relative flex flex-col items-center justify-center group">
              <span>Pair</span>
              {renderChip("even")}
              {renderPayout("even")}
              <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity ${isEraserMode ? "bg-red-500/20" : "bg-white/5"}`} />
            </button>
-           <button onClick={() => onPlaceBet("half", "red", currentChip)} className="flex-1 bg-red-900/40 border border-gold/10 text-red-500 hover:bg-red-900/60 relative flex items-center justify-center group flex-col">
+           <button onClick={() => onPlaceBet("half", "red", currentChip)} className="flex-1 bg-red-900/40 border border-gold/10 text-red-500 hover:bg-red-900/60 relative flex flex-col items-center justify-center group">
              <span>Rouge</span>
              {renderChip("red")}
              {renderPayout("red")}
              <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity ${isEraserMode ? "bg-red-500/20" : "bg-white/10"}`} />
            </button>
-           <button onClick={() => onPlaceBet("half", "black", currentChip)} className="flex-1 bg-black/60 border border-gold/10 text-zinc-400 hover:bg-black relative flex items-center justify-center group flex-col">
+           <button onClick={() => onPlaceBet("half", "black", currentChip)} className="flex-1 bg-black/60 border border-gold/10 text-zinc-400 hover:bg-black relative flex flex-col items-center justify-center group">
              <span>Noir</span>
              {renderChip("black")}
              {renderPayout("black")}
              <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity ${isEraserMode ? "bg-red-500/20" : "bg-white/5"}`} />
            </button>
-           <button onClick={() => onPlaceBet("half", "odd", currentChip)} className="flex-1 bg-zinc-900/80 border border-gold/10 hover:bg-zinc-800 relative flex items-center justify-center group flex-col">
+           <button onClick={() => onPlaceBet("half", "odd", currentChip)} className="flex-1 bg-zinc-900/80 border border-gold/10 hover:bg-zinc-800 relative flex flex-col items-center justify-center group">
              <span>Impair</span>
              {renderChip("odd")}
              {renderPayout("odd")}
              <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity ${isEraserMode ? "bg-red-500/20" : "bg-white/5"}`} />
            </button>
-           <button onClick={() => onPlaceBet("half", "high", currentChip)} className="flex-1 bg-zinc-900/80 rounded-br-lg border border-gold/10 hover:bg-zinc-800 relative flex items-center justify-center group flex-col">
+           <button onClick={() => onPlaceBet("half", "high", currentChip)} className="flex-1 bg-zinc-900/80 rounded-br-lg border border-gold/10 hover:bg-zinc-800 relative flex flex-col items-center justify-center group">
              <span>19-36</span>
              {renderChip("high")}
              {renderPayout("high")}
