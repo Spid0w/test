@@ -19,14 +19,30 @@ import { CursorTraces } from "./CursorTraces";
 import { usePathname } from "next/navigation";
 
 export function GlobalEffects() {
-  const pathname = usePathname();
-  const isExcludedPage = pathname === "/0x8f9b2c/roulette" || pathname === "/0x8f9b2c/roulette/farm";
+  // HORROR PAGES WHITELIST: Only these pages get the scary effects
+  const isHorrorPage = pathname === "/" || 
+                       pathname === "/0x8f9b2c" || 
+                       pathname === "/0x3e1d90" || 
+                       pathname === "/glitch" || 
+                       pathname === "/void" || 
+                       pathname === "/unknown" || 
+                       pathname === "/you-found-me";
+
+  const isExcludedPage = !isHorrorPage;
 
   useViralTricks();
   useEasterEggs();
   useIdleDetection();
   useKonamiCode();
   useCursedCopy();
+
+  useEffect(() => {
+    if (isHorrorPage) {
+      document.body.classList.add("crt");
+    } else {
+      document.body.classList.remove("crt");
+    }
+  }, [isHorrorPage]);
 
   useEffect(() => {
     // We init sound on first interaction
