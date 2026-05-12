@@ -1,4 +1,9 @@
+"use client";
+
+import { CrashGame } from "@/components/casino/CrashGame";
 import { useBalance } from "@/context/BalanceContext";
+import { ArrowLeft, User } from "lucide-react";
+import Link from "next/link";
 
 export default function CrashPage() {
   const { balance } = useBalance();

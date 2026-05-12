@@ -1,5 +1,9 @@
+"use client";
+
 import { ChickenCrossing } from "@/components/casino/ChickenCrossing";
 import { useBalance } from "@/context/BalanceContext";
+import { ArrowLeft, User } from "lucide-react";
+import Link from "next/link";
 
 export default function ChickenPage() {
   const { balance } = useBalance();

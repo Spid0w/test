@@ -1,5 +1,9 @@
+"use client";
+
 import { DiamondMines } from "@/components/casino/DiamondMines";
 import { useBalance } from "@/context/BalanceContext";
+import { ArrowLeft, User } from "lucide-react";
+import Link from "next/link";
 
 export default function SlotsPage() {
   const { balance } = useBalance();
