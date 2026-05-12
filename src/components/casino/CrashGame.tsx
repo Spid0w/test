@@ -1,10 +1,7 @@
-"use client";
-
-import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Coins, Rocket, RotateCcw, TrendingUp, Zap } from "lucide-react";
+import { useBalance } from "@/context/BalanceContext";
 
 export function CrashGame() {
+  const { balance, updateBalance } = useBalance();
   const [bet, setBet] = useState(10);
   const [multiplier, setMultiplier] = useState(1.0);
   const [gameState, setGameState] = useState<"betting" | "launching" | "crashed" | "won">("betting");
@@ -15,8 +12,9 @@ export function CrashGame() {
   const startTimeRef = useRef<number>(0);
 
   const startLaunch = () => {
-    // Determine crash point using house edge formula
-    // 0.99 / (1 - random)
+    if (balance === null || balance < bet) return;
+    updateBalance(-bet);
+
     const p = 0.99 / (1 - Math.random());
     setCrashPoint(p);
     setGameState("launching");
@@ -25,8 +23,7 @@ export function CrashGame() {
     
     const tick = () => {
       const elapsed = (Date.now() - startTimeRef.current) / 1000;
-      // Exponential growth: e^(0.06 * t)
-      const currentMult = Math.pow(Math.E, 0.06 * elapsed);
+      const currentMult = Math.pow(Math.E, 0.08 * elapsed);
       
       if (currentMult >= p) {
         setGameState("crashed");
@@ -44,6 +41,7 @@ export function CrashGame() {
     if (gameState === "launching") {
       if (timerRef.current) clearInterval(timerRef.current);
       setGameState("won");
+      updateBalance(bet * multiplier);
     }
   };
 
@@ -57,6 +55,13 @@ export function CrashGame() {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, []);
+
+  // Curve calculation: Parabolic path
+  // x increases linearly with time (or log of multiplier)
+  // y decreases (goes up) with a curve
+  const t = Math.min((multiplier - 1) / 10, 1); // 0 to 1 over 10x
+  const rocketX = 10 + t * 70;
+  const rocketY = 80 - Math.pow(t, 0.6) * 60;
 
   return (
     <div className="flex flex-col lg:flex-row gap-8 max-w-6xl mx-auto p-6 bg-zinc-900/50 backdrop-blur-xl rounded-3xl border border-white/5 shadow-2xl">
@@ -75,7 +80,7 @@ export function CrashGame() {
             <Coins className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#d4af37]" />
           </div>
           <div className="grid grid-cols-2 gap-2">
-             <button onClick={() => setBet(b => b/2)} disabled={gameState !== "betting"} className="py-2 bg-zinc-800 rounded-lg text-[10px] font-black uppercase hover:bg-zinc-700 transition-colors">1/2</button>
+             <button onClick={() => setBet(b => Math.max(1, b/2))} disabled={gameState !== "betting"} className="py-2 bg-zinc-800 rounded-lg text-[10px] font-black uppercase hover:bg-zinc-700 transition-colors">1/2</button>
              <button onClick={() => setBet(b => b*2)} disabled={gameState !== "betting"} className="py-2 bg-zinc-800 rounded-lg text-[10px] font-black uppercase hover:bg-zinc-700 transition-colors">2x</button>
           </div>
         </div>
@@ -127,6 +132,19 @@ export function CrashGame() {
              style={{ backgroundImage: "linear-gradient(#333 1px, transparent 1px), linear-gradient(90deg, #333 1px, transparent 1px)", backgroundSize: "40px 40px" }} 
         />
         
+        {/* Curve Line Drawing */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-20">
+           <motion.path 
+             d={`M 10 80 Q 40 80, 80 20`}
+             stroke="#d4af37"
+             strokeWidth="2"
+             fill="none"
+             pathLength="1"
+             initial={{ pathLength: 0 }}
+             animate={{ pathLength: t }}
+           />
+        </svg>
+
         {/* Multiplier Display */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
            <motion.div 
@@ -145,8 +163,8 @@ export function CrashGame() {
             <motion.div
               initial={{ x: "10%", y: "80%" }}
               animate={{ 
-                x: `${Math.min(10 + multiplier * 5, 80)}%`, 
-                y: `${Math.max(80 - multiplier * 10, 20)}%` 
+                x: `${rocketX}%`, 
+                y: `${rocketY}%` 
               }}
               exit={{ opacity: 0, scale: 2 }}
               className="absolute z-20"

@@ -1,10 +1,8 @@
-"use client";
-
-import { CrashGame } from "@/components/casino/CrashGame";
-import { ArrowLeft, User } from "lucide-react";
-import Link from "next/link";
+import { useBalance } from "@/context/BalanceContext";
 
 export default function CrashPage() {
+  const { balance } = useBalance();
+
   return (
     <main className="min-h-screen bg-[#050505] text-white selection:bg-[#d4af37] selection:text-black">
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,#10101a,transparent)] pointer-events-none" />
@@ -24,7 +22,7 @@ export default function CrashPage() {
           <div className="flex items-center gap-4">
              <div className="text-right hidden sm:block">
                 <div className="text-[10px] text-zinc-500 font-bold uppercase">Balance</div>
-                <div className="text-sm font-black text-[#d4af37]">1,250.00 $</div>
+                <div className="text-sm font-black text-[#d4af37]">{balance !== null ? balance.toFixed(2) : "0.00"} $</div>
              </div>
              <div className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center bg-zinc-900">
                 <User className="w-5 h-5 text-zinc-500" />

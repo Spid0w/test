@@ -1,13 +1,12 @@
-"use client";
-
-import { motion } from "framer-motion";
-import { GameCard } from "@/components/casino/GameCard";
-import { ArrowLeft, Coins, Trophy, User } from "lucide-react";
-import Link from "next/link";
+import { useBalance } from "@/context/BalanceContext";
+import { BalanceModal } from "@/components/casino/BalanceModal";
 
 export default function CasinoHub() {
+  const { balance } = useBalance();
+
   return (
     <main className="min-h-screen bg-[#050505] text-white selection:bg-gold-500 selection:text-black">
+      <BalanceModal />
       {/* Premium Gradient Overlay */}
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_-20%,#1a1a1a,transparent)] pointer-events-none" />
       <div className="fixed inset-0 bg-[url('/noise.png')] opacity-[0.03] pointer-events-none" />
@@ -31,7 +30,7 @@ export default function CasinoHub() {
               <div className="w-2 h-2 rounded-full bg-[#d4af37] animate-pulse" />
               <div className="flex flex-col">
                 <span className="text-[10px] text-zinc-500 font-bold uppercase leading-none">Balance</span>
-                <span className="text-sm font-black text-[#d4af37]">1,250.00 <span className="text-[10px]">$</span></span>
+                <span className="text-sm font-black text-[#d4af37]">{balance !== null ? balance.toFixed(2) : "0.00"} <span className="text-[10px]">$</span></span>
               </div>
               <button className="ml-2 w-8 h-8 rounded-full bg-[#d4af37] text-black flex items-center justify-center hover:scale-110 transition-transform">
                 <Coins className="w-4 h-4" />
@@ -108,10 +107,10 @@ export default function CasinoHub() {
             />
             <GameCard 
               title="Chicken Road"
-              description="A digital minefield. Navigate the path carefully to multiply your earnings."
+              description="Help the chicken cross the lanes to multiply your bet. Avoid the traffic!"
               image="/casino/chicken.png"
               href="/0x8f9b2c/casino/chicken"
-              status="new"
+              status="active"
               color="#ff4d4d"
             />
             <GameCard 
@@ -123,8 +122,8 @@ export default function CasinoHub() {
               color="#4dff4d"
             />
             <GameCard 
-              title="Crystal Slots"
-              description="Spin the reels and match the holographic crystals for massive payouts."
+              title="Diamond Mines"
+              description="Select your tiles first, then launch to find diamonds. Features Auto-Farm mode."
               image="/casino/slots.png"
               href="/0x8f9b2c/casino/slots"
               status="active"

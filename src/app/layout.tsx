@@ -12,6 +12,8 @@ export const metadata: Metadata = {
   },
 };
 
+import { BalanceProvider } from "@/context/BalanceContext";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -20,9 +22,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`antialiased`}>
-        <GlobalEffects />
-        {children}
-        <Analytics />
+        <BalanceProvider>
+          <GlobalEffects />
+          {children}
+          <Analytics />
+        </BalanceProvider>
       </body>
     </html>
   );

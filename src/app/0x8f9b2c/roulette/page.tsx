@@ -1,27 +1,7 @@
-"use client";
-
-import { useState, useEffect, useCallback, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { RouletteWheel } from "@/components/casino/RouletteWheel";
-import { RouletteBoard } from "@/components/casino/RouletteBoard";
-import { Coins, Trophy, History, ArrowLeft, RefreshCw, Eraser, TrendingUp, RotateCcw, Play, Square, ListOrdered, Lock, Wallet, ShieldAlert, Plus, Minus, Power, PowerOff, Flame, Snowflake, BarChart3, Database } from "lucide-react";
-import Link from "next/link";
-
-import { REDS, calculateWin } from "@/lib/roulette-utils";
-
-const CHIP_VALUES = [0.5, 1, 5, 10, 20];
-
-interface SessionRound {
-  id: number;
-  result: number;
-  color: string;
-  totalBet: number;
-  totalWin: number;
-  net: number;
-}
+import { useBalance } from "@/context/BalanceContext";
 
 export default function RoulettePage() {
-  const [balance, setBalance] = useState<number | null>(null);
+  const { balance, setBalance, updateBalance } = useBalance();
   const [vaultBalance, setVaultBalance] = useState(0);
   
   // Safety state
@@ -30,7 +10,6 @@ export default function RoulettePage() {
   const [stopWinEnabled, setStopWinEnabled] = useState(false);
   const [stopWinValue, setStopWinValue] = useState(100);
 
-  const [initialBalanceSet, setInitialBalanceSet] = useState(false);
   const [activeBets, setActiveBets] = useState<Record<string, number>>({});
   const [lastBets, setLastBets] = useState<Record<string, number>>({});
   const [isEraserMode, setIsEraserMode] = useState(false);
@@ -66,7 +45,7 @@ export default function RoulettePage() {
     stopLossValue: 0,
     stopWinEnabled: false,
     stopWinValue: 0,
-    initialBalanceSet: false
+    initialBalanceSet: true
   });
 
   useEffect(() => {
@@ -81,9 +60,9 @@ export default function RoulettePage() {
       stopLossValue,
       stopWinEnabled,
       stopWinValue,
-      initialBalanceSet
+      initialBalanceSet: true
     };
-  }, [isSpinning, targetNumber, isAutoMode, activeBets, lastBets, balance, stopLossEnabled, stopLossValue, stopWinEnabled, stopWinValue, initialBalanceSet]);
+  }, [isSpinning, targetNumber, isAutoMode, activeBets, lastBets, balance, stopLossEnabled, stopLossValue, stopWinEnabled, stopWinValue]);
 
   const repeatLastBetsRaw = useCallback((silent = false) => {
     const s = stateRef.current;
@@ -94,11 +73,11 @@ export default function RoulettePage() {
       return false;
     }
     const currentOnBoard = Object.values(s.activeBets).reduce((a, b) => a + b, 0);
-    setBalance(prev => (prev !== null ? prev + currentOnBoard - totalToRepeat : prev));
+    updateBalance(currentOnBoard - totalToRepeat);
     setActiveBets({ ...s.lastBets });
     if (!silent) setMessage("DERNIÈRE MISE RESTAURÉE");
     return true;
-  }, []);
+  }, [updateBalance]);
 
   const startSpinRaw = useCallback(() => {
     const s = stateRef.current;
@@ -126,7 +105,7 @@ export default function RoulettePage() {
     const isResultRed = REDS.includes(result);
 
     const nextBalance = (stateRef.current.balance || 0) + finalWin;
-    setBalance(nextBalance);
+    updateBalance(finalWin);
     setHistory((prev) => [result, ...prev].slice(0, 10));
     setSessionHistory(prev => [
       { id: prev.length + 1, result, color: result === 0 ? "VERT" : isResultRed ? "ROUGE" : "NOIR", totalBet, totalWin: finalWin, net: finalWin - totalBet },
@@ -158,7 +137,7 @@ export default function RoulettePage() {
           workerRef.current?.postMessage({ action: "startTimer", delay: 2000 });
        }
     }
-  }, []);
+  }, [updateBalance]);
 
   // Update functionsRef every time they change
   useEffect(() => {
@@ -182,20 +161,19 @@ export default function RoulettePage() {
     setBalance(amount); 
     setMaxBalance(amount);
     setMinBalance(amount);
-    setInitialBalanceSet(true); 
     localStorage.setItem("roulette_highscore", "0"); // Reset local session HighScore visual
   };
 
   const moveToVault = (amount: number) => {
     if (balance === null || balance < amount) { setMessage("PAS ASSEZ D'OR"); return; }
-    setBalance(prev => (prev !== null ? prev - amount : 0));
+    updateBalance(-amount);
     setVaultBalance(prev => prev + amount);
     setMessage(`${amount}€ SÉCURISÉS AU COFFRE`);
   };
 
   const recoverFromVault = () => {
     if (vaultBalance === 0) return;
-    setBalance(prev => (prev !== null ? prev + vaultBalance : vaultBalance));
+    updateBalance(vaultBalance);
     setVaultBalance(0);
     setMessage("OR RÉCUPÉRÉ DU COFFRE");
   };
@@ -207,7 +185,7 @@ export default function RoulettePage() {
     if (isEraserMode) {
       const existingAmount = activeBets[betId] || 0;
       if (existingAmount > 0) {
-        setBalance((prev) => (prev !== null ? prev + existingAmount : prev));
+        updateBalance(existingAmount);
         setActiveBets((prev) => { const next = { ...prev }; delete next[betId]; return next; });
       }
       return;
@@ -215,7 +193,7 @@ export default function RoulettePage() {
     const totalCurrentBets = Object.values(activeBets).reduce((a, b) => a + b, 0);
     if (totalCurrentBets + amount > 50 || amount > balance) return;
     setActiveBets((prev) => ({ ...prev, [betId]: (prev[betId] || 0) + amount }));
-    setBalance((prev) => (prev !== null ? prev - amount : 0));
+    updateBalance(-amount);
   };
 
   const doubleCurrentBets = () => {
@@ -225,13 +203,13 @@ export default function RoulettePage() {
     const nextBets = { ...activeBets };
     Object.keys(nextBets).forEach(id => { nextBets[id] *= 2; });
     setActiveBets(nextBets);
-    setBalance(prev => (prev !== null ? prev - totalCurrentBets : prev));
+    updateBalance(-totalCurrentBets);
   };
 
   const resetCurrentBets = () => {
     if (isSpinning) return;
     const totalCurrentBets = Object.values(activeBets).reduce((a, b) => a + b, 0);
-    setBalance((prev) => (prev !== null ? prev + totalCurrentBets : prev));
+    updateBalance(totalCurrentBets);
     setActiveBets({});
     setIsAutoMode(false);
   };
@@ -256,7 +234,7 @@ export default function RoulettePage() {
     if (totalBet > (balance + currentOnBoard)) { setMessage("PAS ASSEZ D'OR"); return; }
     if (totalBet > 50) { setMessage("LIMITE 50€ DÉPASSÉE"); return; }
     
-    setBalance(prev => (prev !== null ? prev + currentOnBoard - totalBet : prev));
+    updateBalance(currentOnBoard - totalBet);
     setActiveBets(bets);
     setMessage("SETUP APPLIQUÉ");
   };
@@ -320,7 +298,7 @@ export default function RoulettePage() {
       <div className="max-w-[1600px] mx-auto relative z-10">
         <div className="flex justify-between items-center mb-6 border-b-2 border-[#3f2b1d] pb-4">
           <div className="flex items-center gap-4">
-             <Link href="/0x8f9b2c" className="hover:text-[#d4af37] transition-colors"><ArrowLeft size={24} /></Link>
+             <Link href="/0x8f9b2c/casino" className="hover:text-[#d4af37] transition-colors"><ArrowLeft size={24} /></Link>
              <h1 className="text-2xl md:text-5xl font-black tracking-tighter italic text-[#d4af37]">EL POCO <span className="text-white">LOCO</span> CASINO</h1>
           </div>
           <div className="flex gap-4 items-center">
@@ -559,7 +537,6 @@ export default function RoulettePage() {
       </div>
 
       {/* MODALS */}
-      <AnimatePresence>{!initialBalanceSet && (<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4"><motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="bg-[#1a110a] border-4 border-[#d4af37] p-8 max-w-sm w-full rounded-[2rem] shadow-[0_0_150px_rgba(212,175,55,0.4)] text-center relative overflow-hidden"><div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" /><div className="relative z-10"><Trophy className="mx-auto text-[#d4af37] mb-6" size={48} /><h2 className="text-3xl font-black mb-2 text-white italic uppercase tracking-tighter">Bienvenue, Cowboy</h2><p className="text-[#8b4513] mb-8 text-sm italic font-black uppercase tracking-widest opacity-60">Combien d'or apportez-vous ?</p><div className="grid grid-cols-2 gap-4 mb-8">{[10, 20, 30, 50].map((num) => (<button key={num} onClick={() => handleInitialBalance(num)} className="py-4 bg-gradient-to-b from-[#3f2b1d] to-[#1b110a] border-2 border-[#d4af37]/30 rounded-xl font-black text-white hover:border-[#d4af37] hover:scale-105 transition-all shadow-xl">{num}€</button>))}</div><div className="text-[10px] text-[#3f2b1d] uppercase tracking-[0.3em] font-black mt-4">La chance tourne comme la bille.</div></div></motion.div></motion.div>)}</AnimatePresence>
       <AnimatePresence>{showLeaderboard && (<motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} className="fixed inset-y-0 right-0 w-full max-w-xs z-[60] bg-[#1a110a] border-l-4 border-[#d4af37]/40 p-8 shadow-[0_0_80px_rgba(0,0,0,1)]"><div className="absolute inset-0 opacity-5 bg-[url('https://www.transparenttextures.com/patterns/dust.png')]" /><button onClick={() => setShowLeaderboard(false)} className="absolute top-4 right-4 text-[#d4af37] hover:rotate-90 transition-transform"><RefreshCw size={24} className="rotate-45" /></button><h3 className="text-2xl font-black mb-8 italic border-b-2 border-[#3f2b1d] pb-2 text-[#d4af37] tracking-tighter">VOS RECORDS</h3><div className="space-y-6"><div className="bg-black/80 p-5 rounded-2xl border-2 border-[#d4af37]/20 shadow-xl"><div className="text-[10px] uppercase text-[#8b4513] mb-2 font-black tracking-widest italic opacity-60">Meilleur Coup</div><div className="text-4xl font-black text-white italic">{highScore.toFixed(2)}€</div></div><div className="text-[10px] text-[#5c4033] leading-relaxed italic border-t-2 border-[#3f2b1d] pt-6 font-black uppercase tracking-widest opacity-40">Vos exploits sont sauvegardés localement sur votre machine.</div></div></motion.div>)}</AnimatePresence>
       <AnimatePresence>{showHistory && (<motion.div initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} className="fixed inset-y-0 left-0 w-full max-w-sm z-[60] bg-[#1a110a] border-r-4 border-[#d4af37]/40 p-6 shadow-[0_0_80px_rgba(0,0,0,1)] overflow-hidden flex flex-col"><div className="absolute inset-0 opacity-5 bg-[url('https://www.transparenttextures.com/patterns/dust.png')]" /><div className="relative z-10 flex flex-col h-full"><div className="flex justify-between items-center mb-8 border-b-2 border-[#3f2b1d] pb-4"><h3 className="text-2xl font-black italic text-[#d4af37] tracking-tighter">JOURNAL DE BORD</h3><button onClick={() => setShowHistory(false)} className="text-[#8b4513] hover:text-[#d4af37] transition-all"><ArrowLeft size={28} /></button></div><div className="bg-gradient-to-br from-black to-[#1a110a] p-5 rounded-2xl border-2 border-[#d4af37]/20 mb-8 flex flex-col gap-4 shadow-2xl relative overflow-hidden"><div className="absolute top-0 right-0 p-4 opacity-5"><ListOrdered size={60} /></div><div className="relative z-10 flex justify-between items-center"><div><div className="text-[10px] uppercase text-[#8b4513] font-black tracking-[0.2em] mb-1">Profit Session</div><div className={`text-3xl font-black italic ${sessionProfit >= 0 ? "text-green-500" : "text-red-500"}`}>{sessionProfit >= 0 ? "+" : ""}{sessionProfit.toFixed(2)}€</div></div></div><div className="grid grid-cols-2 gap-3 pt-3 border-t-2 border-[#3f2b1d]/40"><div><div className="text-[9px] uppercase text-[#5c4033] font-black tracking-widest">Sommet</div><div className="text-sm font-black text-[#d4af37] italic">{maxBalance.toFixed(2)}€</div></div><div className="text-right"><div className="text-[9px] uppercase text-[#5c4033] font-black tracking-widest">Abysse</div><div className="text-sm font-black text-white italic">{minBalance.toFixed(2)}€</div></div></div></div><div className="flex-1 overflow-auto pr-2 space-y-3 custom-scrollbar">{sessionHistory.length === 0 ? (<div className="text-center py-20 text-[#3f2b1d] italic text-sm font-black uppercase tracking-[0.3em]">Aucune archive...</div>) : (sessionHistory.map((round) => (<motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} key={round.id} className="bg-black/40 border-2 border-[#3f2b1d]/40 p-4 rounded-xl flex justify-between items-center group hover:border-[#d4af37]/60 transition-all shadow-md"><div className="flex items-center gap-4"><div className={`w-11 h-11 rounded-full flex items-center justify-center text-xs font-black border-2 border-white/10 group-hover:scale-110 transition-transform ${round.result === 0 ? "bg-green-700" : round.color === "ROUGE" ? "bg-red-800" : "bg-black"}`}>{round.result}</div><div><div className="text-[10px] text-[#5c4033] font-black tracking-tighter uppercase">Vol #{round.id}</div><div className="text-[9px] text-[#8b4513] font-bold">Mise: {round.totalBet}€ | Gain: {round.totalWin}€</div></div></div><div className={`text-md font-black italic ${round.net >= 0 ? "text-green-500" : "text-red-500"}`}>{round.net >= 100 ? "JACKPOT!" : (round.net >= 0 ? "+" : "") + round.net.toFixed(2) + "€"}</div></motion.div>)))}</div><div className="mt-8 pt-5 border-t-2 border-[#3f2b1d] text-[10px] text-[#3f2b1d] text-center font-black uppercase tracking-[0.3em] italic opacity-40">Archives temporaires (Reset session)</div></div></motion.div>)}</AnimatePresence>
     </main>
