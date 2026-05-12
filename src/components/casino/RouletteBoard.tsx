@@ -73,7 +73,7 @@ export function RouletteBoard({ onPlaceBet, activeBets, currentChip, isEraserMod
         <div className="flex h-[240px] md:h-[300px]">
           
           {/* Zero */}
-          <div className="relative z-20 w-12 md:w-16 h-full mr-1">
+          <div className="relative w-12 md:w-16 h-full mr-1">
              <button
                onClick={() => onPlaceBet("single", "0", currentChip)}
                className={`w-full h-full rounded-l-lg border border-gold/30 ${getNumberColor(0)} flex items-center justify-center font-bold text-lg relative group`}
@@ -83,55 +83,10 @@ export function RouletteBoard({ onPlaceBet, activeBets, currentChip, isEraserMod
                {renderPayout("0")}
                <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity ${isEraserMode ? "bg-red-500/20" : "bg-white/5"}`} />
              </button>
-
-             {/* Split 0-3 */}
-             <button
-               onClick={(e) => { e.stopPropagation(); onPlaceBet("split", "split_0_3", currentChip); }}
-               className={`absolute top-[16.66%] -right-2.5 w-5 h-8 -translate-y-1/2 z-30 flex items-center justify-center transition-all ${activeBets["split_0_3"] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/40")}`}
-             >
-               {renderChip("split_0_3")}
-               {isEraserMode && activeBets["split_0_3"] && <div className="absolute inset-0 bg-red-500/20" />}
-             </button>
-
-             {/* Split 0-2 */}
-             <button
-               onClick={(e) => { e.stopPropagation(); onPlaceBet("split", "split_0_2", currentChip); }}
-               className={`absolute top-[50%] -right-2.5 w-5 h-8 -translate-y-1/2 z-30 flex items-center justify-center transition-all ${activeBets["split_0_2"] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/40")}`}
-             >
-               {renderChip("split_0_2")}
-               {isEraserMode && activeBets["split_0_2"] && <div className="absolute inset-0 bg-red-500/20" />}
-             </button>
-
-             {/* Split 0-1 */}
-             <button
-               onClick={(e) => { e.stopPropagation(); onPlaceBet("split", "split_0_1", currentChip); }}
-               className={`absolute top-[83.33%] -right-2.5 w-5 h-8 -translate-y-1/2 z-30 flex items-center justify-center transition-all ${activeBets["split_0_1"] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/40")}`}
-             >
-               {renderChip("split_0_1")}
-               {isEraserMode && activeBets["split_0_1"] && <div className="absolute inset-0 bg-red-500/20" />}
-             </button>
-
-             {/* Corner 0-1-2-3 (First Four) Top */}
-             <button
-               onClick={(e) => { e.stopPropagation(); onPlaceBet("corner", "corner_0_1_2_3", currentChip); }}
-               className={`absolute -top-3 -right-3 w-6 h-6 rounded-full z-40 flex items-center justify-center transition-all ${activeBets["corner_0_1_2_3"] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/40")}`}
-             >
-               {renderChip("corner_0_1_2_3")}
-               {isEraserMode && activeBets["corner_0_1_2_3"] && <div className="absolute inset-0 bg-red-500/20 rounded-full" />}
-             </button>
-
-             {/* Corner 0-1-2-3 (First Four) Bottom */}
-             <button
-               onClick={(e) => { e.stopPropagation(); onPlaceBet("corner", "corner_0_1_2_3", currentChip); }}
-               className={`absolute -bottom-3 -right-3 w-6 h-6 rounded-full z-40 flex items-center justify-center transition-all ${activeBets["corner_0_1_2_3"] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/40")}`}
-             >
-               {renderChip("corner_0_1_2_3")}
-               {isEraserMode && activeBets["corner_0_1_2_3"] && <div className="absolute inset-0 bg-red-500/20 rounded-full" />}
-             </button>
           </div>
 
           {/* Numbers Grid */}
-          <div className="flex-1 grid grid-cols-12 gap-1 relative h-full">
+          <div className="flex-1 grid grid-cols-12 gap-1 relative z-20 h-full">
              {numberCols.map((col, colIdx) => (
                <div key={colIdx} className="flex flex-col gap-1">
                  {col.map((num, rowIdx) => (
@@ -145,6 +100,53 @@ export function RouletteBoard({ onPlaceBet, activeBets, currentChip, isEraserMod
                        {renderPayout(num.toString())}
                        <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity ${isEraserMode ? "bg-red-500/20" : "bg-white/5"}`} />
                      </button>
+
+                     {/* Zero boundary hitboxes (Splits, Trios, First Four) */}
+                     {colIdx === 0 && (
+                        <>
+                          {/* Split 0-num */}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onPlaceBet("split", `split_0_${num}`, currentChip); }}
+                            className={`absolute top-1/4 bottom-1/4 -left-3 w-6 z-40 flex items-center justify-center transition-all ${activeBets[`split_0_${num}`] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/40")}`}
+                          >
+                            {renderChip(`split_0_${num}`)}
+                            {isEraserMode && activeBets[`split_0_${num}`] && <div className="absolute inset-0 bg-red-500/20" />}
+                          </button>
+
+                          {/* Trios (0-2-3, 0-1-2) */}
+                          {rowIdx < 2 && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); onPlaceBet("nums", `nums_0_${num}_${num-1}`, currentChip); }}
+                              className={`absolute -bottom-3 -left-3 w-6 h-6 rounded-full z-50 flex items-center justify-center transition-all ${activeBets[`nums_0_${num}_${num-1}`] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/40")}`}
+                            >
+                              {renderChip(`nums_0_${num}_${num-1}`)}
+                              {isEraserMode && activeBets[`nums_0_${num}_${num-1}`] && <div className="absolute inset-0 bg-red-500/20 rounded-full" />}
+                            </button>
+                          )}
+
+                          {/* First Four (Corner 0-1-2-3) - Top */}
+                          {rowIdx === 0 && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); onPlaceBet("corner", "corner_0_1_2_3", currentChip); }}
+                              className={`absolute -top-3 -left-3 w-6 h-6 rounded-full z-50 flex items-center justify-center transition-all ${activeBets["corner_0_1_2_3"] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/40")}`}
+                            >
+                              {renderChip("corner_0_1_2_3")}
+                              {isEraserMode && activeBets["corner_0_1_2_3"] && <div className="absolute inset-0 bg-red-500/20 rounded-full" />}
+                            </button>
+                          )}
+
+                          {/* First Four (Corner 0-1-2-3) - Bottom */}
+                          {rowIdx === 2 && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); onPlaceBet("corner", "corner_0_1_2_3", currentChip); }}
+                              className={`absolute -bottom-3 -left-3 w-6 h-6 rounded-full z-50 flex items-center justify-center transition-all ${activeBets["corner_0_1_2_3"] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/40")}`}
+                            >
+                              {renderChip("corner_0_1_2_3")}
+                              {isEraserMode && activeBets["corner_0_1_2_3"] && <div className="absolute inset-0 bg-red-500/20 rounded-full" />}
+                            </button>
+                          )}
+                        </>
+                     )}
 
                      {/* Hitboxes for Duo / Carré */}
                      {colIdx < 11 && (
