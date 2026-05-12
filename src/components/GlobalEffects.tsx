@@ -19,6 +19,7 @@ import { CursorTraces } from "./CursorTraces";
 import { usePathname } from "next/navigation";
 
 export function GlobalEffects() {
+  const pathname = usePathname();
   // HORROR PAGES WHITELIST: Only these pages get the scary effects
   const isHorrorPage = pathname === "/" || 
                        pathname === "/0x8f9b2c" || 
