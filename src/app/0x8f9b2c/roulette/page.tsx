@@ -122,7 +122,7 @@ export default function RoulettePage() {
   const resolveBetsRaw = useCallback((result: number) => {
     const currentBets = stateRef.current.activeBets;
     const totalBet = Object.values(currentBets).reduce((a, b) => a + b, 0);
-    const { totalWin, isPartage, finalWin } = calculateWin(result, currentBets);
+    const { totalWin, finalWin } = calculateWin(result, currentBets);
     const isResultRed = REDS.includes(result);
 
     const nextBalance = (stateRef.current.balance || 0) + finalWin;
@@ -139,8 +139,6 @@ export default function RoulettePage() {
 
     if (finalWin > 0) {
       setMessage(`${stateRef.current.isAutoMode ? "[AUTO] " : ""}GAGNÉ : ${result} (${finalWin.toFixed(2)}€)`);
-    } else if (isPartage) {
-      setMessage(`${stateRef.current.isAutoMode ? "[AUTO] " : ""}ZÉRO ! PARTAGE : ${(finalWin).toFixed(2)}€ RENDUS`);
     } else {
       setMessage(`${stateRef.current.isAutoMode ? "[AUTO] " : ""}RÉSULTAT : ${result} - LA BANQUE GAGNE`);
     }

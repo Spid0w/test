@@ -83,6 +83,51 @@ export function RouletteBoard({ onPlaceBet, activeBets, currentChip, isEraserMod
                {renderPayout("0")}
                <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity ${isEraserMode ? "bg-red-500/20" : "bg-white/5"}`} />
              </button>
+
+             {/* Split 0-3 */}
+             <button
+               onClick={(e) => { e.stopPropagation(); onPlaceBet("split", "split_0_3", currentChip); }}
+               className={`absolute top-[16.66%] -right-2.5 w-5 h-8 -translate-y-1/2 z-30 flex items-center justify-center transition-all ${activeBets["split_0_3"] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/40")}`}
+             >
+               {renderChip("split_0_3")}
+               {isEraserMode && activeBets["split_0_3"] && <div className="absolute inset-0 bg-red-500/20" />}
+             </button>
+
+             {/* Split 0-2 */}
+             <button
+               onClick={(e) => { e.stopPropagation(); onPlaceBet("split", "split_0_2", currentChip); }}
+               className={`absolute top-[50%] -right-2.5 w-5 h-8 -translate-y-1/2 z-30 flex items-center justify-center transition-all ${activeBets["split_0_2"] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/40")}`}
+             >
+               {renderChip("split_0_2")}
+               {isEraserMode && activeBets["split_0_2"] && <div className="absolute inset-0 bg-red-500/20" />}
+             </button>
+
+             {/* Split 0-1 */}
+             <button
+               onClick={(e) => { e.stopPropagation(); onPlaceBet("split", "split_0_1", currentChip); }}
+               className={`absolute top-[83.33%] -right-2.5 w-5 h-8 -translate-y-1/2 z-30 flex items-center justify-center transition-all ${activeBets["split_0_1"] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/40")}`}
+             >
+               {renderChip("split_0_1")}
+               {isEraserMode && activeBets["split_0_1"] && <div className="absolute inset-0 bg-red-500/20" />}
+             </button>
+
+             {/* Corner 0-1-2-3 (First Four) Top */}
+             <button
+               onClick={(e) => { e.stopPropagation(); onPlaceBet("corner", "corner_0_1_2_3", currentChip); }}
+               className={`absolute -top-3 -right-3 w-6 h-6 rounded-full z-40 flex items-center justify-center transition-all ${activeBets["corner_0_1_2_3"] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/40")}`}
+             >
+               {renderChip("corner_0_1_2_3")}
+               {isEraserMode && activeBets["corner_0_1_2_3"] && <div className="absolute inset-0 bg-red-500/20 rounded-full" />}
+             </button>
+
+             {/* Corner 0-1-2-3 (First Four) Bottom */}
+             <button
+               onClick={(e) => { e.stopPropagation(); onPlaceBet("corner", "corner_0_1_2_3", currentChip); }}
+               className={`absolute -bottom-3 -right-3 w-6 h-6 rounded-full z-40 flex items-center justify-center transition-all ${activeBets["corner_0_1_2_3"] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/40")}`}
+             >
+               {renderChip("corner_0_1_2_3")}
+               {isEraserMode && activeBets["corner_0_1_2_3"] && <div className="absolute inset-0 bg-red-500/20 rounded-full" />}
+             </button>
           </div>
 
           {/* Numbers Grid */}
@@ -105,7 +150,7 @@ export function RouletteBoard({ onPlaceBet, activeBets, currentChip, isEraserMod
                      {colIdx < 11 && (
                        <button
                          onClick={(e) => { e.stopPropagation(); onPlaceBet("split", `split_${num}_${num+3}`, currentChip); }}
-                         className={`absolute top-1/4 bottom-1/4 -right-1.5 w-3 z-30 flex items-center justify-center transition-all ${activeBets[`split_${num}_${num+3}`] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/20")}`}
+                         className={`absolute top-1/4 bottom-1/4 -right-2.5 w-5 z-30 flex items-center justify-center transition-all ${activeBets[`split_${num}_${num+3}`] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/20")}`}
                        >
                          {renderChip(`split_${num}_${num+3}`)}
                          {isEraserMode && activeBets[`split_${num}_${num+3}`] && <div className="absolute inset-0 bg-red-500/20" />}
@@ -115,7 +160,7 @@ export function RouletteBoard({ onPlaceBet, activeBets, currentChip, isEraserMod
                      {rowIdx < 2 && (
                        <button
                          onClick={(e) => { e.stopPropagation(); onPlaceBet("split", `split_${num}_${num-1}`, currentChip); }}
-                         className={`absolute -bottom-1.5 left-1/4 right-1/4 h-3 z-30 flex items-center justify-center transition-all ${activeBets[`split_${num}_${num-1}`] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/20")}`}
+                         className={`absolute -bottom-2.5 left-1/4 right-1/4 h-5 z-30 flex items-center justify-center transition-all ${activeBets[`split_${num}_${num-1}`] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/20")}`}
                        >
                          {renderChip(`split_${num}_${num-1}`)}
                          {isEraserMode && activeBets[`split_${num}_${num-1}`] && <div className="absolute inset-0 bg-red-500/20" />}
@@ -125,7 +170,7 @@ export function RouletteBoard({ onPlaceBet, activeBets, currentChip, isEraserMod
                      {colIdx < 11 && rowIdx < 2 && (
                         <button
                           onClick={(e) => { e.stopPropagation(); onPlaceBet("corner", `corner_${num}_${num-1}_${num+3}_${num+2}`, currentChip); }}
-                          className={`absolute -bottom-1.5 -right-1.5 w-4 h-4 rounded-full z-40 flex items-center justify-center transition-all ${activeBets[`corner_${num}_${num-1}_${num+3}_${num+2}`] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/40")}`}
+                          className={`absolute -bottom-3 -right-3 w-6 h-6 rounded-full z-40 flex items-center justify-center transition-all ${activeBets[`corner_${num}_${num-1}_${num+3}_${num+2}`] ? "opacity-100" : (isEraserMode ? "" : "opacity-0 hover:opacity-100 hover:bg-gold/40")}`}
                         >
                            {renderChip(`corner_${num}_${num-1}_${num+3}_${num+2}`)}
                            {isEraserMode && activeBets[`corner_${num}_${num-1}_${num+3}_${num+2}`] && <div className="absolute inset-0 bg-red-500/20 rounded-full" />}
