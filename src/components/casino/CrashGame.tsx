@@ -1,4 +1,9 @@
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useBalance } from "@/context/BalanceContext";
+import { Coins, Rocket, RotateCcw, TrendingUp, Zap } from "lucide-react";
 
 export function CrashGame() {
   const { balance, updateBalance } = useBalance();
