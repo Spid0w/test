@@ -1,14 +1,20 @@
 "use client";
 
+import { useState } from "react";
 import { useBalance } from "@/context/BalanceContext";
 import { BalanceModal } from "@/components/casino/BalanceModal";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { GameCard } from "@/components/casino/GameCard";
-import { ArrowLeft, Coins, Trophy, User } from "lucide-react";
+import { ArrowLeft, Coins, Trophy, User, Lock, X } from "lucide-react";
 import Link from "next/link";
 
 export default function CasinoHub() {
-  const { balance } = useBalance();
+  const { balance, setBalance } = useBalance();
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetStep, setResetStep] = useState<"password" | "amount">("password");
+  const [password, setPassword] = useState("");
+  const [passwordError, setPasswordError] = useState(false);
+  const [resetAmount, setResetAmount] = useState("");
 
   return (
     <main className="min-h-screen bg-[#050505] text-white selection:bg-gold-500 selection:text-black">
@@ -37,7 +43,7 @@ export default function CasinoHub() {
                 <span className="text-[10px] text-zinc-500 font-bold uppercase leading-none">Balance</span>
                 <span className="text-sm font-black text-[#d4af37]">{balance !== null ? balance.toFixed(2) : "0.00"} <span className="text-[10px]">$</span></span>
               </div>
-              <button className="ml-2 w-8 h-8 rounded-full bg-[#d4af37] text-black flex items-center justify-center hover:scale-110 transition-transform">
+              <button onClick={() => { setShowResetModal(true); setResetStep("password"); setPassword(""); setPasswordError(false); setResetAmount(""); }} className="ml-2 w-8 h-8 rounded-full bg-[#d4af37] text-black flex items-center justify-center hover:scale-110 transition-transform">
                 <Coins className="w-4 h-4" />
               </button>
             </div>
@@ -172,6 +178,92 @@ export default function CasinoHub() {
            </div>
         </div>
       </footer>
+
+      {/* Reset Balance Modal */}
+      <AnimatePresence>
+        {showResetModal && (
+          <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowResetModal(false)}>
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+              className="bg-zinc-900 border border-white/10 rounded-2xl p-8 max-w-sm w-full relative shadow-2xl"
+            >
+              <button onClick={() => setShowResetModal(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors">
+                <X size={18} />
+              </button>
+
+              {resetStep === "password" ? (
+                <div className="flex flex-col items-center gap-6">
+                  <div className="w-14 h-14 rounded-full bg-[#d4af37]/10 flex items-center justify-center">
+                    <Lock className="w-7 h-7 text-[#d4af37]" />
+                  </div>
+                  <div className="text-center">
+                    <h3 className="text-lg font-black uppercase italic tracking-tight">Accès Restreint</h3>
+                    <p className="text-xs text-zinc-500 mt-1">Entrez le mot de passe administrateur</p>
+                  </div>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={e => { setPassword(e.target.value); setPasswordError(false); }}
+                    onKeyDown={e => {
+                      if (e.key === "Enter") {
+                        if (password === "boulbix") setResetStep("amount");
+                        else setPasswordError(true);
+                      }
+                    }}
+                    placeholder="Mot de passe..."
+                    className={`w-full bg-black/50 border-2 ${passwordError ? "border-red-500" : "border-white/10"} rounded-xl px-4 py-3 text-white font-bold text-center focus:outline-none focus:border-[#d4af37] transition-colors`}
+                    autoFocus
+                  />
+                  {passwordError && <p className="text-red-500 text-xs font-bold">Mot de passe incorrect</p>}
+                  <button
+                    onClick={() => {
+                      if (password === "boulbix") setResetStep("amount");
+                      else setPasswordError(true);
+                    }}
+                    className="w-full py-3 bg-[#d4af37] text-black font-black uppercase text-xs tracking-widest rounded-xl hover:scale-105 active:scale-95 transition-all"
+                  >
+                    Valider
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-6">
+                  <div className="w-14 h-14 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                    <Coins className="w-7 h-7 text-emerald-400" />
+                  </div>
+                  <div className="text-center">
+                    <h3 className="text-lg font-black uppercase italic tracking-tight">Modifier la Balance</h3>
+                    <p className="text-xs text-zinc-500 mt-1">Solde actuel : <span className="text-[#d4af37] font-black">{balance?.toFixed(2) ?? "0.00"}$</span></p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 w-full">
+                    {[100, 500, 1000, 5000].map(v => (
+                      <button key={v} onClick={() => { setBalance(v); setShowResetModal(false); }} className="py-3 bg-black/40 border border-white/10 rounded-xl font-black text-white hover:border-[#d4af37] hover:scale-105 transition-all">
+                        {v}$
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex w-full gap-2">
+                    <input
+                      type="number"
+                      value={resetAmount}
+                      onChange={e => setResetAmount(e.target.value)}
+                      placeholder="Montant custom..."
+                      className="flex-1 bg-black/50 border-2 border-white/10 rounded-xl px-4 py-3 text-white font-bold focus:outline-none focus:border-[#d4af37] transition-colors"
+                    />
+                    {resetAmount && (
+                      <button onClick={() => { setBalance(parseFloat(resetAmount)); setShowResetModal(false); }} className="px-6 py-3 bg-[#d4af37] text-black font-black text-xs rounded-xl hover:scale-105 active:scale-95 transition-all">
+                        OK
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }

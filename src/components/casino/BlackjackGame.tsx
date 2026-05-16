@@ -393,7 +393,7 @@ export function BlackjackGame() {
       <div className="relative z-10 flex flex-col" style={{ minHeight: 680 }}>
         {/* Dealer Section */}
         <div className="flex flex-col items-center pt-8 pb-6">
-          <div className="flex items-center gap-2 mb-4 px-4 py-1.5 bg-black/50 rounded-full border border-[#d4af37]/20 backdrop-blur-sm">
+          <div className="flex items-center gap-2 mb-5 px-4 py-1.5 bg-black/50 rounded-full border border-[#d4af37]/20 backdrop-blur-sm">
             <div className="w-2 h-2 rounded-full bg-[#d4af37] animate-pulse" />
             <span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#d4af37]">Croupier</span>
             {dealer.length > 0 && (
@@ -404,18 +404,16 @@ export function BlackjackGame() {
           </div>
 
           <div className="flex items-end justify-center" style={{ minHeight: 110 }}>
-            <AnimatePresence>
-              {dealer.map((card, i) => (
-                <div key={`d-${i}`} style={{ marginLeft: i > 0 ? -28 : 0, zIndex: i }}>
-                  <PlayingCard card={card} delay={i * 0.2} />
-                </div>
-              ))}
-              {phase === "player" && dealer.length === 1 && (
-                <div style={{ marginLeft: -28, zIndex: 1 }}>
-                  <PlayingCard card={{} as Card} hidden delay={0.3} />
-                </div>
-              )}
-            </AnimatePresence>
+            {dealer.map((card, i) => (
+              <div key={`d-${i}`} style={{ marginLeft: i > 0 ? -28 : 0, zIndex: i }}>
+                <PlayingCard card={card} delay={i * 0.2} />
+              </div>
+            ))}
+            {phase === "player" && dealer.length === 1 && (
+              <div style={{ marginLeft: -28, zIndex: 1 }}>
+                <PlayingCard card={{} as Card} hidden delay={0.3} />
+              </div>
+            )}
           </div>
         </div>
 
