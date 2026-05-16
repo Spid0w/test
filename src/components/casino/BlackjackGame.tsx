@@ -273,39 +273,47 @@ export function BlackjackGame() {
   // --- DEALER ---
   const runDealer = (finalHands: HandData[], currentDealer: Card[]) => {
     setPhase("dealer");
-    setMessage("Le croupier joue...");
+    setMessage("Révélation...");
 
-    // Reveal all hidden double cards and check for busts
-    const revealed = finalHands.map(h => {
-      const newH = { ...h, doubleHidden: false, cards: [...h.cards] };
-      if (h.doubleHidden && h.doubled) {
-        const v = handValue(newH.cards);
-        if (v > 21) newH.status = "busted";
+    // Delay reveal of face-down double cards for suspense
+    const hasHidden = finalHands.some(h => h.doubleHidden);
+    const revealDelay = hasHidden ? 1200 : 0;
+
+    setTimeout(() => {
+      // Reveal all hidden double cards and check for busts
+      const revealed = finalHands.map(h => {
+        const newH = { ...h, doubleHidden: false, cards: [...h.cards] };
+        if (h.doubleHidden && h.doubled) {
+          const v = handValue(newH.cards);
+          if (v > 21) newH.status = "busted";
+        }
+        return newH;
+      });
+      setHands(revealed);
+
+      // Check if all player hands are busted
+      const allBusted = revealed.every(h => h.status === "busted");
+      if (allBusted) {
+        setTimeout(() => settle(revealed, currentDealer), 800);
+        return;
       }
-      return newH;
-    });
-    setHands(revealed);
 
-    // Check if all player hands are busted
-    const allBusted = revealed.every(h => h.status === "busted");
-    if (allBusted) {
-      setTimeout(() => settle(revealed, currentDealer), 500);
-      return;
-    }
+      setMessage("Le croupier joue...");
 
-    // Dealer draws
-    let dealerCards = [...currentDealer];
-    const dealNext = () => {
-      const v = handValue(dealerCards);
-      if (v < 17) {
-        dealerCards = [...dealerCards, drawCard()];
-        setDealer([...dealerCards]);
-        setTimeout(dealNext, 700);
-      } else {
-        setTimeout(() => settle(revealed, dealerCards), 500);
-      }
-    };
-    setTimeout(dealNext, 600);
+      // Dealer draws
+      let dealerCards = [...currentDealer];
+      const dealNext = () => {
+        const v = handValue(dealerCards);
+        if (v < 17) {
+          dealerCards = [...dealerCards, drawCard()];
+          setDealer([...dealerCards]);
+          setTimeout(dealNext, 700);
+        } else {
+          setTimeout(() => settle(revealed, dealerCards), 500);
+        }
+      };
+      setTimeout(dealNext, 600);
+    }, revealDelay);
   };
 
   // --- SETTLE ---
