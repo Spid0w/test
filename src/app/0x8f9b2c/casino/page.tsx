@@ -111,6 +111,14 @@ export default function CasinoHub() {
               color="#d4af37"
             />
             <GameCard 
+              title="Blackjack"
+              description="Le jeu de table classique. Battez le croupier et atteignez 21."
+              image="/casino/blackjack.png"
+              href="/0x8f9b2c/casino/blackjack"
+              status="new"
+              color="#d4af37"
+            />
+            <GameCard 
               title="Chicken Road"
               description="Aidez le poussin à traverser les voies pour multiplier votre mise. Évitez le trafic !"
               image="/casino/chicken.png"
