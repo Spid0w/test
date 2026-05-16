@@ -94,7 +94,9 @@ const PlayingCard = ({ card, hidden = false, delay = 0 }: { card: Card; hidden?:
 
 // --- Hand Display ---
 const HandDisplay = ({ hand, isActive, phase }: { hand: HandData; isActive: boolean; phase: Phase }) => {
-  const val = handValue(hand.cards);
+  const fullVal = handValue(hand.cards);
+  const visibleVal = hand.doubleHidden ? handValue(hand.cards.slice(0, -1)) : fullVal;
+  const showBust = hand.status === "busted" && !hand.doubleHidden;
   const resultColors: Record<string, string> = {
     win: "text-emerald-400", lose: "text-red-500", push: "text-yellow-400", blackjack: "text-[#d4af37]", "": "text-white"
   };
@@ -120,11 +122,11 @@ const HandDisplay = ({ hand, isActive, phase }: { hand: HandData; isActive: bool
       {/* Score badge */}
       {hand.cards.length > 0 && (
         <div className={`px-3 py-1 rounded-full text-xs font-black ${
-          hand.status === "busted" ? "bg-red-500/20 text-red-400" :
+          showBust ? "bg-red-500/20 text-red-400" :
           hand.status === "blackjack" ? "bg-[#d4af37]/20 text-[#d4af37]" :
           isActive ? "bg-[#d4af37] text-black" : "bg-zinc-800 text-zinc-300"
         }`}>
-          {hand.status === "busted" ? `BUST (${val})` : hand.status === "blackjack" ? "BJ 21" : val}
+          {showBust ? `BUST (${fullVal})` : hand.status === "blackjack" ? "BJ 21" : hand.doubleHidden ? `${visibleVal} + ?` : fullVal}
         </div>
       )}
 
@@ -245,9 +247,14 @@ export function BlackjackGame() {
     target.doubled = true;
     target.doubleHidden = faceDown;
 
-    const v = handValue(target.cards);
-    if (v > 21) target.status = "busted";
-    else target.status = "standing";
+    if (faceDown) {
+      // Face down: don't reveal bust, always stand — will check on dealer reveal
+      target.status = "standing";
+    } else {
+      const v = handValue(target.cards);
+      if (v > 21) target.status = "busted";
+      else target.status = "standing";
+    }
 
     setHands(newHands);
     advanceHand(newHands, activeIdx);
@@ -268,8 +275,15 @@ export function BlackjackGame() {
     setPhase("dealer");
     setMessage("Le croupier joue...");
 
-    // Reveal all hidden double cards
-    const revealed = finalHands.map(h => ({ ...h, doubleHidden: false, cards: [...h.cards] }));
+    // Reveal all hidden double cards and check for busts
+    const revealed = finalHands.map(h => {
+      const newH = { ...h, doubleHidden: false, cards: [...h.cards] };
+      if (h.doubleHidden && h.doubled) {
+        const v = handValue(newH.cards);
+        if (v > 21) newH.status = "busted";
+      }
+      return newH;
+    });
     setHands(revealed);
 
     // Check if all player hands are busted
