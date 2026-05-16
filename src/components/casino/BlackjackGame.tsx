@@ -182,8 +182,8 @@ export function BlackjackGame() {
     setLastWin(0);
     setMessage("Distribution...");
 
-    const newHands = hands.map(h => ({
-      ...h, cards: [] as Card[], doubled: false, doubleHidden: false, status: "playing" as const, result: "" as const
+    const newHands: HandData[] = hands.map(h => ({
+      ...h, cards: [] as Card[], doubled: false, doubleHidden: false, status: "playing" as HandData["status"], result: "" as HandData["result"]
     }));
 
     // Deal: player card, dealer card, player card (European = 1 dealer card)
